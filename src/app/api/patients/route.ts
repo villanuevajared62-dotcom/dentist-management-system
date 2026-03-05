@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Patient from '@/models/Patient';
 import { PatientSchema } from '@/lib/validations';
@@ -14,11 +14,9 @@ export async function GET(req: NextRequest) {
   const page = parseInt(req.nextUrl.searchParams.get('page') || '1');
   const limit = parseInt(req.nextUrl.searchParams.get('limit') || '20');
   
-  // Always filter by isActive: true (include in query even without search)
   const query: Record<string, unknown> = { isActive: true };
 
   if (search) {
-    // Text search on indexed fields - also ensure isActive is true
     query.$or = [
       { firstName: { $regex: search, $options: 'i' }, isActive: true },
       { lastName:  { $regex: search, $options: 'i' }, isActive: true },
@@ -29,11 +27,9 @@ export async function GET(req: NextRequest) {
 
   await connectDB();
   
-  // Get total count for pagination
   const total = await Patient.countDocuments(query);
   const totalPages = Math.ceil(total / limit);
   
-  // Apply pagination with skip and limit
   const skip = (page - 1) * limit;
   const patients = await Patient.find(query)
     .populate('registeredBy', 'name')
@@ -41,7 +37,8 @@ export async function GET(req: NextRequest) {
     .skip(skip)
     .limit(limit);
 
-  return successResponse({
+  return NextResponse.json({
+    success: true,
     data: patients,
     pagination: {
       page,
@@ -63,14 +60,11 @@ export async function POST(req: NextRequest) {
 
   await connectDB();
 
-  // ─── DUPLICATE CHECK ────────────────────────────────────────────
-  // Check if patient with same phone number already exists
   const existingByPhone = await Patient.findOne({ phone: parsed.data.phone });
   if (existingByPhone) {
     return errorResponse('A patient with this phone number already exists', 409);
   }
 
-  // If email is provided, also check for duplicate email
   if (parsed.data.email) {
     const existingByEmail = await Patient.findOne({ email: parsed.data.email.toLowerCase() });
     if (existingByEmail) {
@@ -78,7 +72,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Sanitize input fields to prevent XSS and injection attacks
   const sanitizedData = {
     ...parsed.data,
     email: parsed.data.email?.toLowerCase(),
@@ -91,7 +84,6 @@ export async function POST(req: NextRequest) {
 
   const patient = await Patient.create({ ...sanitizedData, registeredBy: session!.user.id });
 
-  // Create audit log entry
   await createAuditLog(
     'CREATE',
     'Patient',

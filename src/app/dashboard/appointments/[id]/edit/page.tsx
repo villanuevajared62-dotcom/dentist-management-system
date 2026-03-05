@@ -9,12 +9,25 @@ import { formatTime } from '@/lib/utils';
 
 export default function EditAppointmentPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  // Ensure params.id is available
+  const appointmentId = params?.id;
+  
   const [form, setForm] = useState({ date: '', startTime: '', dentistId: '', branchId: '', reason: '', notes: '' });
 
   const { data: appt } = useQuery({
-    queryKey: ['appointment', params.id],
-    queryFn: () => fetch(`/api/appointments/${params.id}`).then(r => r.json()).then(r => r.data),
+    queryKey: ['appointment', appointmentId],
+    queryFn: () => fetch(`/api/appointments/${appointmentId}`).then(r => r.json()).then(r => r.data),
+    enabled: !!appointmentId,
   });
+
+  // Handle missing appointmentId
+  if (!appointmentId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-slate-400">Invalid appointment ID</p>
+      </div>
+    );
+  }
 
   // Populate form when appointment data is loaded
   useEffect(() => {
@@ -44,7 +57,7 @@ export default function EditAppointmentPage({ params }: { params: { id: string }
     : slots;
 
   const updateMutation = useMutation({
-    mutationFn: (data: typeof form) => fetch(`/api/appointments/${params.id}`, {
+    mutationFn: (data: typeof form) => fetch(`/api/appointments/${appointmentId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -53,7 +66,7 @@ export default function EditAppointmentPage({ params }: { params: { id: string }
       const data = await res.json();
       if (!res.ok) return toast.error(data.message);
       toast.success('Appointment updated');
-      router.push(`/dashboard/appointments/${params.id}`);
+      router.push(`/dashboard/appointments/${appointmentId}`);
     },
   });
 
@@ -62,7 +75,7 @@ export default function EditAppointmentPage({ params }: { params: { id: string }
   return (
     <div className="animate-fade-in max-w-xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href={`/dashboard/appointments/${params.id}`} className="p-2 hover:bg-slate-100 rounded-lg">
+        <Link href={`/dashboard/appointments/${appointmentId}`} className="p-2 hover:bg-slate-100 rounded-lg">
           <ArrowLeft size={18} />
         </Link>
         <h1 className="page-title">Edit Appointment</h1>
@@ -102,9 +115,10 @@ export default function EditAppointmentPage({ params }: { params: { id: string }
           <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex-1">
             {updateMutation.isPending ? 'Saving…' : 'Save Changes'}
           </button>
-          <Link href={`/dashboard/appointments/${params.id}`} className="btn-secondary flex-1 text-center">Cancel</Link>
+          <Link href={`/dashboard/appointments/${appointmentId}`} className="btn-secondary flex-1 text-center">Cancel</Link>
         </div>
       </form>
     </div>
   );
 }
+

@@ -6,16 +6,31 @@ import { formatDate, STATUS_COLORS, formatTime } from '@/lib/utils';
 import { AppointmentStatus } from '@/types';
 
 export default function PatientDetailPage({ params }: { params: { id: string } }) {
+  const patientId = params?.id;
+
   const { data: patient, isLoading } = useQuery({
-    queryKey: ['patient', params.id],
-    queryFn: () => fetch(`/api/patients/${params.id}`).then(r => r.json()).then(r => r.data),
+    queryKey: ['patient', patientId],
+    queryFn: () => fetch(`/api/patients/${patientId}`).then(r => r.json()).then(r => r.data),
+    enabled: !!patientId,
   });
 
   const { data: appointments = [] } = useQuery({
-    queryKey: ['patient-appointments', params.id],
-    queryFn: () => fetch(`/api/appointments?patientId=${params.id}`).then(r => r.json()).then(r => r.data),
-    enabled: !!params.id,
+    queryKey: ['patient-appointments', patientId],
+    queryFn: async () => {
+      const res = await fetch(`/api/appointments?patientId=${patientId}`);
+      const json = await res.json();
+      return Array.isArray(json.data) ? json.data : [];
+    },
+    enabled: !!patientId,
   });
+
+  if (!patientId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-slate-400">Invalid patient ID</p>
+      </div>
+    );
+  }
 
   if (isLoading) return <div className="flex items-center justify-center h-64 text-slate-400">Loading…</div>;
   if (!patient) return <div className="text-slate-500">Patient not found.</div>;
@@ -52,16 +67,19 @@ export default function PatientDetailPage({ params }: { params: { id: string } }
           <h3 className="section-title mb-3">Medical Info</h3>
           <div>
             <p className="text-xs text-slate-400 mb-1">Medical History</p>
-            <p className="text-sm text-slate-700">{patient.medicalHistory || <span className="italic text-slate-400">None on record</span>}</p>
+            <p className="text-sm text-slate-700">
+              {patient.medicalHistory || <span className="italic text-slate-400">None on record</span>}
+            </p>
           </div>
           <div className="pt-3">
             <p className="text-xs text-slate-400 mb-1">Allergies</p>
-            <p className="text-sm text-slate-700">{patient.allergies || <span className="italic text-slate-400">None known</span>}</p>
+            <p className="text-sm text-slate-700">
+              {patient.allergies || <span className="italic text-slate-400">None known</span>}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Appointment history */}
       <div className="card">
         <h3 className="section-title mb-4">Appointment History</h3>
         {appointments.length === 0 ? (

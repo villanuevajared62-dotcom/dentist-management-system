@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
+import { AlertCircle } from 'lucide-react';
 
 interface ChartData {
   weeklyAppointments: { day: string; count: number }[];
@@ -12,9 +13,16 @@ interface ChartData {
   branchAppointments: { branchName: string; count: number }[];
 }
 
+interface ApiError {
+  message?: string;
+}
+
 async function fetchStats(): Promise<ChartData> {
   const res = await fetch('/api/dashboard/stats');
-  if (!res.ok) throw new Error('Failed to fetch stats');
+  if (!res.ok) {
+    const error: ApiError = await res.json().catch(() => ({ message: 'Failed to fetch stats' }));
+    throw new Error(error.message || 'Failed to fetch stats');
+  }
   const data = await res.json();
   return data.data;
 }
@@ -23,6 +31,8 @@ export default function DashboardCharts() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: fetchStats,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   if (isLoading) {
@@ -47,10 +57,23 @@ export default function DashboardCharts() {
     );
   }
 
-  if (error || !data) {
+  if (error) {
+    return (
+      <div className="card p-8 text-center">
+        <div className="flex flex-col items-center justify-center text-slate-500">
+          <AlertCircle className="w-10 h-10 mb-3 text-amber-500" />
+          <p className="font-medium">Unable to load chart data</p>
+          <p className="text-sm mt-1">Please try refreshing the page</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle empty or invalid data
+  if (!data || !data.weeklyAppointments) {
     return (
       <div className="card p-8 text-center text-slate-500">
-        Failed to load chart data
+        <p>No chart data available</p>
       </div>
     );
   }

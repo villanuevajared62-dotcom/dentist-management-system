@@ -63,7 +63,6 @@ export function SessionTimeout() {
 
   return (
     <>
-      <Toaster position="top-center" />
       {showWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">

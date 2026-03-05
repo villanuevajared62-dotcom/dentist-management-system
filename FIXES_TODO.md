@@ -12,5 +12,10 @@
 - [x] 8. TypeScript errors - Fix number | undefined type issues in dashboard stats
 - [x] 9. CSS - Exclude CSS files from TypeScript checking to fix @tailwind/@apply warnings
 - [x] 10. Test all fixes
+- [x] 11. Remove duplicate Toaster component from SessionTimeout.tsx (kept in layout.tsx only)
+- [x] 12. Improve DashboardCharts error handling with better error messages and retry logic
+- [x] 13. Fix patient detail/edit pages - Add defensive checks for params.id availability
+- [x] 14. Fix appointment detail/edit pages - Add defensive checks for params.id availability
+- [x] 15. Update all dynamic route pages to use safe patientId/appointmentId variables
 
 

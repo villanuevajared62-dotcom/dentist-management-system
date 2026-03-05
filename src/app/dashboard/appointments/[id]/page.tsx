@@ -16,11 +16,24 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
   const role = session?.user?.role;
   const [notes, setNotes] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);
+  
+  // Ensure params.id is available
+  const appointmentId = params?.id;
 
   const { data: appt, isLoading } = useQuery({
-    queryKey: ['appointment', params.id],
-    queryFn: () => fetch(`/api/appointments/${params.id}`).then(r => r.json()).then(r => r.data),
+    queryKey: ['appointment', appointmentId],
+    queryFn: () => fetch(`/api/appointments/${appointmentId}`).then(r => r.json()).then(r => r.data),
+    enabled: !!appointmentId,
   });
+
+  // Handle missing appointmentId
+  if (!appointmentId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-slate-400">Invalid appointment ID</p>
+      </div>
+    );
+  }
 
   // Populate notes when appointment data is loaded
   useEffect(() => {
@@ -31,7 +44,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
 
   const updateMutation = useMutation({
     mutationFn: (body: Record<string, string>) =>
-      fetch(`/api/appointments/${params.id}`, {
+      fetch(`/api/appointments/${appointmentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -39,7 +52,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
     onSuccess: (data) => {
       if (data.success) {
         toast.success('Updated');
-        qc.invalidateQueries({ queryKey: ['appointment', params.id] });
+        qc.invalidateQueries({ queryKey: ['appointment', appointmentId] });
         setEditingNotes(false);
       } else {
         toast.error(data.message);
@@ -48,7 +61,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => fetch(`/api/appointments/${params.id}`, { method: 'DELETE' }),
+    mutationFn: () => fetch(`/api/appointments/${appointmentId}`, { method: 'DELETE' }),
     onSuccess: () => { toast.success('Appointment cancelled'); router.push('/dashboard/appointments'); },
   });
 
@@ -116,7 +129,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
       {/* Cancel action */}
       {(role === 'admin' || role === 'staff') && appt.status === 'Pending' && (
         <div className="card flex gap-3">
-          <Link href={`/dashboard/appointments/${params.id}/edit`} className="btn-primary flex-1 text-center">
+          <Link href={`/dashboard/appointments/${appointmentId}/edit`} className="btn-primary flex-1 text-center">
             Edit Appointment
           </Link>
           <button

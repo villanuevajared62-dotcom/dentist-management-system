@@ -8,6 +8,9 @@ import Link from 'next/link';
 
 export default function EditPatientPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  // Ensure params.id is available
+  const patientId = params?.id;
+  
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     dateOfBirth: '', gender: 'Male', address: '',
@@ -16,9 +19,19 @@ export default function EditPatientPage({ params }: { params: { id: string } }) 
   const [ready, setReady] = useState(false);
 
   const { data: patient } = useQuery({
-    queryKey: ['patient', params.id],
-    queryFn: () => fetch(`/api/patients/${params.id}`).then(r => r.json()).then(r => r.data),
+    queryKey: ['patient', patientId],
+    queryFn: () => fetch(`/api/patients/${patientId}`).then(r => r.json()).then(r => r.data),
+    enabled: !!patientId,
   });
+
+  // Handle missing patientId
+  if (!patientId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-slate-400">Invalid patient ID</p>
+      </div>
+    );
+  }
 
   // Populate form when patient data is loaded
   useEffect(() => {
@@ -39,7 +52,7 @@ export default function EditPatientPage({ params }: { params: { id: string } }) 
   }, [patient]);
 
   const updateMutation = useMutation({
-    mutationFn: (data: typeof form) => fetch(`/api/patients/${params.id}`, {
+    mutationFn: (data: typeof form) => fetch(`/api/patients/${patientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -48,7 +61,7 @@ export default function EditPatientPage({ params }: { params: { id: string } }) 
       const data = await res.json();
       if (!res.ok) return toast.error(data.message);
       toast.success('Patient updated');
-      router.push(`/dashboard/patients/${params.id}`);
+      router.push(`/dashboard/patients/${patientId}`);
     },
   });
 
@@ -59,7 +72,7 @@ export default function EditPatientPage({ params }: { params: { id: string } }) 
   return (
     <div className="animate-fade-in max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href={`/dashboard/patients/${params.id}`} className="p-2 hover:bg-slate-100 rounded-lg">
+        <Link href={`/dashboard/patients/${patientId}`} className="p-2 hover:bg-slate-100 rounded-lg">
           <ArrowLeft size={18} />
         </Link>
         <h1 className="page-title">Edit Patient</h1>
@@ -85,7 +98,7 @@ export default function EditPatientPage({ params }: { params: { id: string } }) 
           <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex-1">
             {updateMutation.isPending ? 'Saving…' : 'Save Changes'}
           </button>
-          <Link href={`/dashboard/patients/${params.id}`} className="btn-secondary flex-1 text-center">Cancel</Link>
+          <Link href={`/dashboard/patients/${patientId}`} className="btn-secondary flex-1 text-center">Cancel</Link>
         </div>
       </form>
     </div>
