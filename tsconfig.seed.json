@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "noEmit": false,
+    "outDir": "./dist-seed",
+    "esModuleInterop": true
+  },
+  "include": ["src/lib/seed.ts", "src/models/**/*.ts", "src/lib/db.ts"]
+}
