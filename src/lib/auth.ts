@@ -5,9 +5,6 @@ import User from '@/models/User';
 import { LoginSchema } from '@/lib/validations';
 
 export const authOptions: NextAuthOptions = {
-  // ✅ ADDED: Required for production on Vercel
-  trustHost: true,
-
   session: { strategy: 'jwt', maxAge: 24 * 60 * 60 }, // 24h
 
   pages: {
@@ -15,7 +12,7 @@ export const authOptions: NextAuthOptions = {
     error: '/login',
   },
 
-  // ✅ ADDED: Secure cookies for production
+  // ✅ FIXED: Secure cookies for production HTTPS
   cookies: {
     sessionToken: {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
