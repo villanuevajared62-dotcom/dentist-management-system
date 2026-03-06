@@ -77,11 +77,17 @@ export async function POST(req: NextRequest) {
     { path: 'userId', select: 'name email' },
     { path: 'branchId', select: 'name city' },
   ]);
+  const dentistUserName =
+    typeof populated.userId === 'object' &&
+    populated.userId !== null &&
+    'name' in populated.userId
+      ? (populated.userId as { name?: string }).name || 'Unknown'
+      : 'Unknown';
   await createAuditLog(
     'CREATE',
     'Dentist',
     session!.user.id,
-    `Created dentist profile for ${populated.userId?.name || 'Unknown'}`
+    `Created dentist profile for ${dentistUserName}`
   );
   return successResponse(populated, 201);
 }
