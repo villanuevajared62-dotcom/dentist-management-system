@@ -18,11 +18,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     .populate('userId', 'name email')
     .populate('branchId', 'name city');
   if (!dentist) return errorResponse('Dentist not found', 404);
+  const dentistUserName =
+    typeof dentist.userId === 'object' &&
+    dentist.userId !== null &&
+    'name' in dentist.userId
+      ? (dentist.userId as { name?: string }).name || 'Unknown'
+      : 'Unknown';
   await createAuditLog(
     'UPDATE',
     'Dentist',
     session!.user.id,
-    `Updated dentist profile for ${dentist.userId?.name || 'Unknown'}`
+    `Updated dentist profile for ${dentistUserName}`
   );
   return successResponse(dentist);
 }
@@ -36,11 +42,17 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const dentist = await Dentist.findByIdAndUpdate(params.id, { isActive: false }, { new: true })
     .populate('userId', 'name email');
   if (!dentist) return errorResponse('Dentist not found', 404);
+  const dentistUserName =
+    typeof dentist.userId === 'object' &&
+    dentist.userId !== null &&
+    'name' in dentist.userId
+      ? (dentist.userId as { name?: string }).name || 'Unknown'
+      : 'Unknown';
   await createAuditLog(
     'DELETE',
     'Dentist',
     session!.user.id,
-    `Deactivated dentist profile for ${dentist.userId?.name || 'Unknown'}`
+    `Deactivated dentist profile for ${dentistUserName}`
   );
   return successResponse({ message: 'Dentist deactivated' });
 }
