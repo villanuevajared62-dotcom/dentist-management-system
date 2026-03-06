@@ -4,6 +4,37 @@ import { connectDB } from '@/lib/db';
 import User from '@/models/User';
 import { LoginSchema } from '@/lib/validations';
 
+// Get the base URL for the application
+const getBaseUrl = () => {
+  // Production: use NEXTAUTH_URL first, then fall back to VERCEL_URL
+  if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // Development fallback
+  return 'http://localhost:3000';
+};
+
+// Get the cookie domain for production
+const getCookieDomain = () => {
+  if (process.env.NODE_ENV !== 'production') return undefined;
+  
+  // If explicitly set, use it
+  if (process.env.NEXTAUTH_COOKIE_DOMAIN) return process.env.NEXTAUTH_COOKIE_DOMAIN;
+  
+  // For Vercel deployments, extract domain from VERCEL_URL
+  if (process.env.VERCEL_URL) {
+    // e.g., dentist-management-system.vercel.app -> .vercel.app
+    const vercelUrl = process.env.VERCEL_URL;
+    const domainParts = vercelUrl.split('.');
+    // Get the last two parts (e.g., .vercel.app)
+    if (domainParts.length >= 2) {
+      return `.${domainParts.slice(-2).join('.')}`;
+    }
+    return `.${vercelUrl}`;
+  }
+  
+  return undefined;
+};
+
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt', maxAge: 24 * 60 * 60 }, // 24h
 
@@ -12,7 +43,7 @@ export const authOptions: NextAuthOptions = {
     error: '/login',
   },
 
-  // ✅ FIXED: Secure cookies for production HTTPS
+  // ✅ FIXED: Proper cookie configuration for production domains (Vercel)
   cookies: {
     sessionToken: {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
@@ -21,6 +52,34 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        // Dynamically set domain for production Vercel deployments
+        ...(process.env.NODE_ENV === 'production' && {
+          domain: getCookieDomain(),
+        }),
+      },
+    },
+    callbackUrl: {
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        ...(process.env.NODE_ENV === 'production' && {
+          domain: getCookieDomain(),
+        }),
+      },
+    },
+    csrfToken: {
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        ...(process.env.NODE_ENV === 'production' && {
+          domain: getCookieDomain(),
+        }),
       },
     },
   },
@@ -72,19 +131,23 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.branchId = user.branchId;
       }
+      // Handle session updates
+      if (trigger === 'update' && session) {
+        token.name = session.name;
+      }
       return token;
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.branchId = token.branchId;
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.branchId = token.branchId as string;
       }
       return session;
     },
