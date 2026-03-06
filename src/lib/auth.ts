@@ -49,7 +49,7 @@ export const authOptions: NextAuthOptions = {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'none', // Required for cross-origin in Vercel
         path: '/',
         secure: process.env.NODE_ENV === 'production',
         // Dynamically set domain for production Vercel deployments
@@ -62,7 +62,7 @@ export const authOptions: NextAuthOptions = {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.callback-url`,
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'none', // Required for cross-origin in Vercel
         path: '/',
         secure: process.env.NODE_ENV === 'production',
         ...(process.env.NODE_ENV === 'production' && {
@@ -74,7 +74,7 @@ export const authOptions: NextAuthOptions = {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.csrf-token`,
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'none', // Required for cross-origin in Vercel
         path: '/',
         secure: process.env.NODE_ENV === 'production',
         ...(process.env.NODE_ENV === 'production' && {
