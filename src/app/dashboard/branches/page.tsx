@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Plus, Building2, Pencil, Trash2, X } from 'lucide-react';
 import { STALE_TIMES } from '@/app/providers';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const emptyForm = { name: '', address: '', city: '', phone: '', email: '' };
 
@@ -12,10 +13,18 @@ export default function BranchesPage() {
   const [modal, setModal] = useState<'create' | 'edit' | null>(null);
   const [editId, setEditId] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['branches'],
-    queryFn: () => fetch('/api/branches').then(r => r.json()).then(r => r.data),
+    queryFn: async () => {
+      const res = await fetch('/api/branches');
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.message || 'Failed to fetch branches');
+      }
+      return json.data || [];
+    },
     staleTime: STALE_TIMES.branches,
   });
 
@@ -27,10 +36,14 @@ export default function BranchesPage() {
     },
     onSuccess: async (res) => {
       const data = await res.json();
-      if (!res.ok) return toast.error(data.message);
+      if (!res.ok) return toast.error(data.message || 'Failed to save branch');
       toast.success(modal === 'edit' ? 'Branch updated' : 'Branch created');
-      qc.invalidateQueries({ queryKey: ['branches'] });
+      // Force refetch to ensure data is fresh
+      await qc.fetchQuery({ queryKey: ['branches'] });
       closeModal();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to save branch');
     },
   });
 
@@ -77,7 +90,7 @@ export default function BranchesPage() {
                   <button onClick={() => openEdit(b)} className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition">
                     <Pencil size={14} />
                   </button>
-                  <button onClick={() => { if (confirm('Remove branch?')) deleteMutation.mutate(b._id); }}
+                  <button onClick={() => setDeleteId(b._id)}
                     className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
                     <Trash2 size={14} />
                   </button>
@@ -119,6 +132,21 @@ export default function BranchesPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteId}
+        title="Remove branch?"
+        message="This will deactivate the branch and hide it from the list."
+        confirmLabel="Yes, Remove"
+        confirmClassName="btn-danger"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (!deleteId) return;
+          deleteMutation.mutate(deleteId);
+          setDeleteId(null);
+        }}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

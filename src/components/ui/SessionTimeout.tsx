@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Toaster, toast } from 'react-hot-toast';
 
 const WARNING_TIME = 5 * 60 * 1000; // 5 minutes in milliseconds
 const CHECK_INTERVAL = 30 * 1000; // Check every 30 seconds
 
 export function SessionTimeout() {
+  const router = useRouter();
   const { data: session, update } = useSession();
   const [showWarning, setShowWarning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
@@ -24,8 +26,10 @@ export function SessionTimeout() {
   }, [update]);
 
   const handleLogout = useCallback(() => {
-    signOut({ callbackUrl: '/login' });
-  }, []);
+    signOut({ redirect: false }).then(() => {
+      router.push('/login');
+    });
+  }, [router]);
 
   useEffect(() => {
     if (!session?.expires) return;

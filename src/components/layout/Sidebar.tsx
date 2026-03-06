@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import {
@@ -28,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function Sidebar() {
+  const router = useRouter();
   const { data: session } = useSession();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -84,7 +86,11 @@ export function Sidebar() {
           </div>
         </div>
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={() => {
+            signOut({ redirect: false }).then(() => {
+              router.push('/login');
+            });
+          }}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
         >
           <LogOut size={16} />

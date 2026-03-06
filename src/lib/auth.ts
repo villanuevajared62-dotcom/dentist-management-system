@@ -6,11 +6,17 @@ import { LoginSchema } from '@/lib/validations';
 
 // Get the base URL for the application
 const getBaseUrl = () => {
-  // Production: use NEXTAUTH_URL first, then fall back to VERCEL_URL
+  // If explicitly set, use it
   if (process.env.NEXTAUTH_URL) return process.env.NEXTAUTH_URL;
+  
+  // For Vercel deployments
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  // Development fallback
-  return 'http://localhost:3000';
+  
+  // Development: detect from request headers or use default
+  // This handles different ports (3000, 3001, etc.)
+  return process.env.NODE_ENV === 'production' 
+    ? 'http://localhost:3000' 
+    : `http://localhost:${process.env.PORT || 3000}`;
 };
 
 // Get the cookie domain for production
@@ -43,7 +49,7 @@ export const authOptions: NextAuthOptions = {
     error: '/login',
   },
 
-  // Cookie configuration - use defaults for Vercel
+// Cookie configuration - use defaults for Vercel
   cookies: {
     sessionToken: {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
@@ -52,6 +58,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60, // 24 hours
       },
     },
     callbackUrl: {
@@ -61,6 +68,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60,
       },
     },
     csrfToken: {
@@ -70,6 +78,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60,
       },
     },
   },
@@ -82,40 +91,71 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const parsed = LoginSchema.safeParse(credentials);
-        if (!parsed.success) return null;
-
-        await connectDB();
-
-        const user = await User.findOne({ email: parsed.data.email, isActive: true });
-        if (!user) return null;
-
-        if (user.lockUntil && user.lockUntil > new Date()) {
-          throw new Error('Account locked. Try again in 15 minutes');
-        }
-
-        const isValid = await user.comparePassword(parsed.data.password);
-        
-        if (!isValid) {
-          user.loginAttempts += 1;
-          if (user.loginAttempts >= 5) {
-            user.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+        try {
+          // Validate input
+          if (!credentials?.email || !credentials?.password) {
+            console.error('[Auth] Missing email or password');
+            return null;
           }
+
+          const parsed = LoginSchema.safeParse(credentials);
+          if (!parsed.success) {
+            console.error('[Auth] Validation failed:', parsed.error.flatten());
+            return null;
+          }
+
+          await connectDB();
+
+          const user = await User.findOne({ email: parsed.data.email });
+          if (!user) {
+            console.error('[Auth] User not found:', parsed.data.email);
+            return null;
+          }
+
+          if (!user.isActive) {
+            console.error('[Auth] User inactive:', parsed.data.email);
+            return null;
+          }
+
+          if (user.lockUntil && user.lockUntil > new Date()) {
+            console.error('[Auth] Account locked:', parsed.data.email);
+            throw new Error('Account locked. Try again in 15 minutes');
+          }
+
+          const isValid = await user.comparePassword(parsed.data.password);
+          
+          if (!isValid) {
+            console.error('[Auth] Invalid password for:', parsed.data.email);
+            user.loginAttempts += 1;
+            if (user.loginAttempts >= 5) {
+              user.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+            }
+            await user.save();
+            return null;
+          }
+
+          // Reset failed attempts on successful login
+          user.loginAttempts = 0;
+          user.lockUntil = undefined;
           await user.save();
+
+          console.log('[Auth] Login successful:', parsed.data.email, 'Role:', user.role);
+
+          return {
+            id: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            branchId: user.branchId?.toString(),
+          };
+        } catch (error) {
+          console.error('[Auth] Authorize error:', error);
+          // Re-throw errors so NextAuth can handle them
+          if (error instanceof Error) {
+            throw error;
+          }
           return null;
         }
-
-        user.loginAttempts = 0;
-        user.lockUntil = undefined;
-        await user.save();
-
-        return {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          branchId: user.branchId?.toString(),
-        };
       },
     }),
   ],

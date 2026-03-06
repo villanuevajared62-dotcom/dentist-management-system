@@ -44,9 +44,14 @@ AppointmentSchema.index(
   { unique: false } // We enforce uniqueness in application logic for more flexibility
 );
 
-// General query index
+// General query indexes - OPTIMIZED for common queries
 AppointmentSchema.index({ date: 1, branchId: 1 });
 AppointmentSchema.index({ patientId: 1, date: -1 });
+AppointmentSchema.index({ dentistId: 1, date: 1, status: 1 }); // For dentist schedules
+AppointmentSchema.index({ branchId: 1, date: 1 }); // For branch filtering
+AppointmentSchema.index({ status: 1, date: 1 }); // For status reports
+// Index for time-range queries (used in conflict detection)
+AppointmentSchema.index({ dentistId: 1, date: 1, startTime: 1 });
 
 const Appointment: Model<IAppointmentDocument> =
   mongoose.models.Appointment ||

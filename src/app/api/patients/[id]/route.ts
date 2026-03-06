@@ -46,15 +46,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (error) return error;
 
   await connectDB();
-  await Patient.findByIdAndUpdate(params.id, { isActive: false });
+  const patient = await Patient.findByIdAndDelete(params.id);
+  if (!patient) return errorResponse('Patient not found', 404);
 
   // Create audit log entry
   await createAuditLog(
     'DELETE',
     'Patient',
     session!.user.id,
-    `Deactivated patient ${params.id}`
+    `Deleted patient ${patient.firstName} ${patient.lastName}`
   );
 
-  return successResponse({ message: 'Patient deactivated' });
+  return successResponse({ message: 'Patient deleted' });
 }

@@ -9,6 +9,7 @@ import { AppointmentStatus } from '@/types';
 import Link from 'next/link';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { STALE_TIMES } from '@/app/providers';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 async function fetchAppointments(params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString();
@@ -18,9 +19,9 @@ async function fetchAppointments(params: Record<string, string>) {
   return json.data;
 }
 
-async function cancelAppointment(id: string) {
+async function deleteAppointment(id: string) {
   const res = await fetch(`/api/appointments/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to cancel');
+  if (!res.ok) throw new Error('Failed to delete');
   return res.json();
 }
 
@@ -63,6 +64,7 @@ export default function AppointmentsPage() {
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const role = session?.user?.role;
 
   // Debounce search input (300ms)
@@ -90,13 +92,13 @@ export default function AppointmentsPage() {
   const needsProfile = rawData?.needsProfile;
   const profileMessage = rawData?.message;
 
-  const cancelMutation = useMutation({
-    mutationFn: cancelAppointment,
+  const deleteMutation = useMutation({
+    mutationFn: deleteAppointment,
     onSuccess: () => {
-      toast.success('Appointment cancelled');
+      toast.success('Appointment deleted');
       qc.invalidateQueries({ queryKey: ['appointments'] });
     },
-    onError: () => toast.error('Failed to cancel appointment'),
+    onError: () => toast.error('Failed to delete appointment'),
   });
 
   // Use appointments directly from API (filtering is now done on backend)
@@ -238,10 +240,10 @@ export default function AppointmentsPage() {
                               Edit
                             </Link>
                             <button
-                              onClick={() => cancelMutation.mutate(appt._id)}
+                              onClick={() => setDeleteId(appt._id)}
                               className="text-red-500 hover:underline text-xs font-medium"
                             >
-                              Cancel
+                              Delete
                             </button>
                           </>
                         )}
@@ -254,6 +256,21 @@ export default function AppointmentsPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={!!deleteId}
+        title="Delete appointment?"
+        message="This action cannot be undone."
+        confirmLabel="Yes, Delete"
+        confirmClassName="btn-danger"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (!deleteId) return;
+          deleteMutation.mutate(deleteId);
+          setDeleteId(null);
+        }}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

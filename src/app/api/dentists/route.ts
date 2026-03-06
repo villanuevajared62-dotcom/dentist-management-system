@@ -1,14 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
 import User from '@/models/User';
 import Dentist from '@/models/Dentist';
 import { DentistSchema } from '@/lib/validations';
-import { requireSession, successResponse, errorResponse } from '@/lib/api-helpers';
+import { requireSession, successResponse, errorResponse, createAuditLog } from '@/lib/api-helpers';
 
-// Cache headers for GET requests
-const CACHE_HEADERS = {
-  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=300',
-};
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // GET /api/dentists — optional ?branchId= filter
 export async function GET(req: NextRequest) {
@@ -54,15 +52,15 @@ export async function GET(req: NextRequest) {
       }
     }
     
-    return NextResponse.json(successResponse(combined), { headers: CACHE_HEADERS });
+    return successResponse(combined);
   }
 
-  return NextResponse.json(successResponse(dentistsWithProfile), { headers: CACHE_HEADERS });
+  return successResponse(dentistsWithProfile);
 }
 
 // POST /api/dentists — admin only
 export async function POST(req: NextRequest) {
-  const { error } = await requireSession(['admin']);
+  const { session, error } = await requireSession(['admin']);
   if (error) return error;
 
   const body = await req.json();
@@ -79,5 +77,11 @@ export async function POST(req: NextRequest) {
     { path: 'userId', select: 'name email' },
     { path: 'branchId', select: 'name city' },
   ]);
+  await createAuditLog(
+    'CREATE',
+    'Dentist',
+    session!.user.id,
+    `Created dentist profile for ${populated.userId?.name || 'Unknown'}`
+  );
   return successResponse(populated, 201);
 }

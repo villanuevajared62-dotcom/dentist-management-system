@@ -5,6 +5,9 @@ import { PatientSchema } from '@/lib/validations';
 import { requireSession, successResponse, errorResponse, createAuditLog } from '@/lib/api-helpers';
 import { sanitizeInput, sanitizeName } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET /api/patients — staff, admin, dentist
 export async function GET(req: NextRequest) {
   const { session, error } = await requireSession(['admin', 'staff', 'dentist']);

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { STALE_TIMES } from '@/app/providers';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -22,6 +23,7 @@ export default function PatientsPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const role = session?.user?.role;
 
   // Reset to page 1 when search changes
@@ -42,10 +44,10 @@ export default function PatientsPage() {
   const deleteMutation = useMutation({
     mutationFn: deletePatient,
     onSuccess: () => {
-      toast.success('Patient deactivated');
+      toast.success('Patient deleted');
       qc.invalidateQueries({ queryKey: ['patients'] });
     },
-    onError: () => toast.error('Failed to deactivate patient'),
+    onError: () => toast.error('Failed to delete patient'),
   });
 
   return (
@@ -111,10 +113,10 @@ export default function PatientsPage() {
                         </Link>
                         {(role === 'admin' || role === 'staff') && (
                           <button
-                            onClick={() => { if (confirm('Deactivate this patient? Their record will be kept but hidden from the list.')) deleteMutation.mutate(p._id); }}
+                            onClick={() => setDeleteId(p._id)}
                             className="text-red-500 hover:underline text-xs font-medium"
                           >
-                            Deactivate
+                            Delete
                           </button>
                         )}
                       </div>
@@ -151,6 +153,21 @@ export default function PatientsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteId}
+        title="Delete patient?"
+        message="This action cannot be undone."
+        confirmLabel="Yes, Delete"
+        confirmClassName="btn-danger"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (!deleteId) return;
+          deleteMutation.mutate(deleteId);
+          setDeleteId(null);
+        }}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

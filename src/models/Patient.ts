@@ -37,6 +37,10 @@ PatientSchema.index({ firstName: 'text', lastName: 'text', email: 'text', phone:
 // Unique index on phone to prevent duplicate patients
 PatientSchema.index({ phone: 1 }, { unique: true });
 
+// Additional indexes for common queries
+PatientSchema.index({ isActive: 1 }); // Filter active patients
+PatientSchema.index({ registeredBy: 1, createdAt: -1 }); // For registration reports
+
 const Patient: Model<IPatientDocument> =
   mongoose.models.Patient || mongoose.model<IPatientDocument>('Patient', PatientSchema);
 

@@ -2,11 +2,11 @@ import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Dentist from '@/models/Dentist';
 import { DentistSchema } from '@/lib/validations';
-import { requireSession, successResponse, errorResponse } from '@/lib/api-helpers';
+import { requireSession, successResponse, errorResponse, createAuditLog } from '@/lib/api-helpers';
 
 // PUT /api/dentists/[id]
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const { error } = await requireSession(['admin']);
+  const { session, error } = await requireSession(['admin']);
   if (error) return error;
 
   const body = await req.json();
@@ -18,15 +18,29 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     .populate('userId', 'name email')
     .populate('branchId', 'name city');
   if (!dentist) return errorResponse('Dentist not found', 404);
+  await createAuditLog(
+    'UPDATE',
+    'Dentist',
+    session!.user.id,
+    `Updated dentist profile for ${dentist.userId?.name || 'Unknown'}`
+  );
   return successResponse(dentist);
 }
 
 // DELETE /api/dentists/[id]
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const { error } = await requireSession(['admin']);
+  const { session, error } = await requireSession(['admin']);
   if (error) return error;
 
   await connectDB();
-  await Dentist.findByIdAndUpdate(params.id, { isActive: false });
+  const dentist = await Dentist.findByIdAndUpdate(params.id, { isActive: false }, { new: true })
+    .populate('userId', 'name email');
+  if (!dentist) return errorResponse('Dentist not found', 404);
+  await createAuditLog(
+    'DELETE',
+    'Dentist',
+    session!.user.id,
+    `Deactivated dentist profile for ${dentist.userId?.name || 'Unknown'}`
+  );
   return successResponse({ message: 'Dentist deactivated' });
 }

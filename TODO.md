@@ -1,16 +1,18 @@
-# TODO - API Response Caching Implementation
+# TODO - Fix Branch and Audit Log Issues
 
-## Task: Add API response caching for frequently accessed, rarely changing data
+## Task: Fix branch data not showing and audit log not working
 
-- [x] 1. Update GET /api/branches - add Next.js cache headers (5 minutes)
-- [x] 2. Update GET /api/dentists - add Next.js cache headers (5 minutes)
-- [x] 3. Update src/app/providers.tsx - React Query default options with query-specific staleTime:
-  - branches query: staleTime 5 minutes (300000 ms)
-  - dentists query: staleTime 5 minutes (300000 ms)
-  - appointments query: staleTime 30 seconds (30000 ms)
-  - patients query: staleTime 1 minute (60000 ms)
+### Steps:
+- [x] 1. Analyze the issues
+- [x] 2. Fix branches API route - remove caching and add audit logging
+- [x] 3. Fix branches/[id] API route - add audit logging for PUT and DELETE
+- [ ] 4. Test the fixes
 
-## Notes:
-- Cache invalidation already implemented in dashboard pages using qc.invalidateQueries()
-- No changes needed for branches/[id] and dentists/[id] routes (POST/PUT/DELETE handlers)
+### Issues Found:
+1. **Branch data not showing**: Aggressive caching in GET /api/branches
+2. **Audit log not working**: No createAuditLog calls in branches API routes
+
+### Files to Edit:
+- src/app/api/branches/route.ts
+- src/app/api/branches/[id]/route.ts
 

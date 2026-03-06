@@ -2,29 +2,44 @@
 
 ## Problem: "Hindi ako makapaglogin" (Cannot login)
 
+**Error: POST http://localhost:3001/api/auth/callback/credentials 401 (Unauthorized)**
+
 Based on the code analysis, here are the common causes and solutions:
 
 ---
 
-## 1. Check Environment Variables (.env.local)
+## 1. Quick Checklist
+
+Before proceeding, ensure you have done these steps in order:
+
+- [ ] **Restart the dev server** completely (Ctrl+C, then `npm run dev`)
+- [ ] **Clear browser cookies** for localhost (open DevTools → Application → Cookies → delete all localhost cookies)
+- [ ] **Check the terminal** for auth logs (look for `[Auth]` messages)
+
+---
+
+## 2. Check Environment Variables (.env.local)
 
 Make sure `.env.local` has these required variables:
 
 ```env
 MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/ilovedentist
 NEXTAUTH_SECRET=<any-32-character-random-string>
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=http://localhost:3001
 ```
 
-**How to check:**
-- Look at `.env.example` for the template
-- Create/edit `.env.local` with your MongoDB connection string
+**Important:** Replace the port number (3001) with whatever port your dev server is actually running on!
+
+**How to check your port:** Look at the terminal when you run `npm run dev` - it will say something like:
+```
+ready - started server on http://localhost:3001
+```
 
 ---
 
-## 2. Seed the Database
+## 3. Seed the Database
 
-The demo users (admin, staff, dentist) must be created first:
+The demo users must be created first:
 
 ```bash
 npm run seed
@@ -38,19 +53,25 @@ Expected output:
 ✅ Patients created
 ```
 
----
-
-## 3. Verify MongoDB Connection
-
-- Ensure your MongoDB Atlas cluster is accessible
-- Check that the IP whitelist includes your current IP
-- Verify username/password in connection string
+**If you see "MONGODB_URI not set":** Your `.env.local` file is not properly configured.
 
 ---
 
-## 4. Test Login Credentials
+## 4. Verify Users Exist in Database
 
-After seeding, use these credentials:
+Run a test to check if users were created:
+
+```bash
+node test-login.js
+```
+
+Or check MongoDB Atlas → Collections → users → you should see 3 documents.
+
+---
+
+## 5. Test Login Credentials
+
+After seeding, use these credentials **exactly** (case-sensitive):
 
 | Role    | Email                        | Password      |
 |---------|------------------------------|---------------|
@@ -60,45 +81,63 @@ After seeding, use these credentials:
 
 ---
 
-## 5. Check for Errors
+## 6. Check Server Logs
 
-Run the dev server and check browser console:
-```bash
-npm run dev
-```
+When you try to login, check the terminal for these messages:
 
-Common error messages:
-- "Invalid email or password" → User doesn't exist or wrong password
-- "Database connection error" → MongoDB not accessible
-- "Token error" → NEXTAUTH_SECRET missing
+- `[Auth] User not found:` → User doesn't exist in database (run `npm run seed`)
+- `[Auth] Invalid password for:` → Wrong password
+- `[Auth] User inactive:` → Account is disabled
+- `[Auth] Login successful:` → Login works! Check browser cookie issues
 
 ---
 
-## 6. If Still Not Working
+## 7. Common Issues & Fixes
 
-Try these additional steps:
+### Issue: 401 Unauthorized
+- Run `npm run seed` to create users
+- Check terminal logs for the specific reason
 
-1. **Restart the dev server** (Ctrl+C, then `npm run dev`)
-2. **Clear browser cache/cookies** related to localhost
-3. **Check MongoDB Atlas** - ensure database `ilovedentist` exists
+### Issue: Cookies not being set
+- Clear browser cookies
+- Make sure you're not in incognito mode with cookies blocked
+- Check browser console for cookie errors
+
+### Issue: "Database connection error"
+- Check MongoDB Atlas - ensure IP whitelist includes your IP
+- Verify `MONGODB_URI` in `.env.local` is correct
+
+### Issue: Wrong port
+- Make sure `NEXTAUTH_URL` matches the port in your terminal
+- Example: if terminal says `localhost:3001`, use `NEXTAUTH_URL=http://localhost:3001`
 
 ---
 
 ## Quick Setup Commands
 
 ```bash
-# 1. Copy example env
-copy .env.example .env.local
+# 1. Stop the server (Ctrl+C)
 
-# 2. Edit .env.local with your MongoDB URI
-# (Get free tier at mongodb.com/cloud/atlas)
+# 2. Check your .env.local has correct values
+# (Cannot read .env files, but you know what you set)
 
-# 3. Seed database
+# 3. Run the seed script
 npm run seed
 
-# 4. Run app
+# 4. Start the server on the correct port
 npm run dev
 ```
 
-Then open http://localhost:3000/login and use the demo credentials above.
+Then open http://localhost:3000/login (or your actual port) and use:
+- **admin@ilovedentist.com** / **Admin1234!**
+
+---
+
+## Updated Auth Configuration (v1.1)
+
+The auth system now includes:
+- ✅ Dynamic port detection for localhost
+- ✅ Detailed logging for debugging
+- ✅ Better error handling
+- ✅ Support for different ports (3000, 3001, etc.)
 

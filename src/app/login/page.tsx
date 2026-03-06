@@ -1,7 +1,8 @@
 'use client';
 import { useState, FormEvent } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -10,9 +11,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const getLoginUrl = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.origin + '/login';
+    }
+    return '/login';
+  };
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
+    
+    // Clear any existing session first to prevent conflicts
+    await signOut({ redirect: false, callbackUrl: getLoginUrl() });
+    
     const res = await signIn('credentials', {
       email, password, redirect: false,
     });
@@ -80,12 +92,15 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo credentials hint */}
-          <div className="mt-6 p-3 bg-brand-50 rounded-lg text-xs text-brand-700">
-            <p className="font-semibold mb-1">Demo credentials (after seeding):</p>
-            <p>Admin: admin@ilovedentist.com / Admin1234!</p>
-            <p>Staff: staff@ilovedentist.com / Staff1234!</p>
-            <p>Dentist: dentist@ilovedentist.com / Dentist1234!</p>
+          {/* Authorization reminder */}
+          <div className="mt-6 p-3 bg-amber-50 rounded-lg text-xs text-amber-800">
+            <p className="font-semibold mb-1">Authorized access only</p>
+            <p>This system is for authorized personnel only. Unauthorized access is prohibited.</p>
+            <div className="mt-2">
+              <Link href="/landing" className="text-amber-700 underline">
+                Back to Landing Page
+              </Link>
+            </div>
           </div>
         </div>
       </div>

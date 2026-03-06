@@ -113,20 +113,27 @@ export async function POST(req: NextRequest) {
     return errorResponse('This dentist is no longer available', 400);
   }
 
-  // ─── DOUBLE BOOKING CHECK ────────────────────────────────────
+  // ─── DOUBLE BOOKING CHECK (OPTIMIZED) ────────────────────────
   // Reject if dentist already has a Pending/Completed appointment in overlapping slot
-  // Convert times to minutes for proper comparison
+  // OPTIMIZATION: Filter at database level instead of loading all and filtering in memory
+  
   const startTimeMinutes = parseInt(startTime.replace(':', ''));
   const endTimeMinutes = parseInt(endTime.replace(':', ''));
   
-  const conflictingAppointments = await Appointment.find({
+  // First, get appointments that could potentially overlap (within 2-hour window)
+  // This reduces the number of documents loaded from DB significantly
+  const potentialConflicts = await Appointment.find({
     dentistId,
     date,
     status: { $in: ['Pending', 'Completed'] },
-  });
+    startTime: { 
+      $gte: String(Math.max(0, startTimeMinutes - 200)).padStart(4, '0'),
+      $lte: String(Math.min(2359, endTimeMinutes + 200)).padStart(4, '0')
+    }
+  }).select('startTime endTime');
 
-  // Check for time overlap using numeric comparison
-  const conflict = conflictingAppointments.find((appt: any) => {
+  // Check for time overlap using numeric comparison (on smaller dataset)
+  const conflict = potentialConflicts.find((appt: any) => {
     const apptStart = parseInt(appt.startTime.replace(':', ''));
     const apptEnd = parseInt(appt.endTime.replace(':', ''));
     

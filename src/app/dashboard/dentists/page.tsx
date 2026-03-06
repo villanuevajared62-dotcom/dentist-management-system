@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Plus, Stethoscope, X, Trash2 } from 'lucide-react';
 import { STALE_TIMES } from '@/app/providers';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -22,6 +23,7 @@ export default function DentistsPage() {
   const qc = useQueryClient();
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: dentists = [], isLoading } = useQuery({
     queryKey: ['dentists'],
@@ -99,7 +101,7 @@ const createMutation = useMutation({
                 </div>
                 {d.isActive !== false && (
                   <button
-                    onClick={() => { if (confirm('Deactivate this dentist?')) deleteMutation.mutate(d._id); }}
+                    onClick={() => setDeleteId(d._id)}
                     className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
                     title="Deactivate"
                   >
@@ -188,6 +190,21 @@ const createMutation = useMutation({
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteId}
+        title="Deactivate dentist?"
+        message="This will hide the dentist profile from the list."
+        confirmLabel="Yes, Deactivate"
+        confirmClassName="btn-danger"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (!deleteId) return;
+          deleteMutation.mutate(deleteId);
+          setDeleteId(null);
+        }}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

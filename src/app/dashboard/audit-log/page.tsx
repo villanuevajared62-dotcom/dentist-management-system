@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Search, Filter, FileText, Calendar, User, Folder } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Filter, FileText, Calendar, User } from 'lucide-react';
 
 const ACTION_COLORS: Record<string, string> = {
   CREATE: 'bg-emerald-100 text-emerald-700',
@@ -15,13 +15,19 @@ const MODULE_COLORS: Record<string, string> = {
   Patient: 'bg-cyan-100 text-cyan-700',
   User: 'bg-amber-100 text-amber-700',
   Branch: 'bg-pink-100 text-pink-700',
+  Dentist: 'bg-indigo-100 text-indigo-700',
 };
 
+const MODULE_OPTIONS = ['Appointment', 'Patient', 'User', 'Branch', 'Dentist'];
+
 export default function AuditLogPage() {
+  const qc = useQueryClient();
   const [actionFilter, setActionFilter] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['audit-logs', actionFilter, moduleFilter, dateFrom, dateTo],
@@ -34,6 +40,26 @@ export default function AuditLogPage() {
       return fetch(`/api/audit-log?${params}`).then(r => r.json()).then(r => r.data);
     },
   });
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [actionFilter, moduleFilter, dateFrom, dateTo, logs.length]);
+
+  const deleteMutation = useMutation({
+    mutationFn: (ids: string[]) => fetch('/api/audit-log', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    }),
+    onSuccess: async (res) => {
+      const data = await res.json();
+      if (!res.ok) return;
+      setSelectedIds([]);
+      qc.invalidateQueries({ queryKey: ['audit-logs'] });
+    },
+  });
+
+  const allSelected = logs.length > 0 && selectedIds.length === logs.length;
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -72,10 +98,9 @@ export default function AuditLogPage() {
               onChange={e => setModuleFilter(e.target.value)}
             >
               <option value="">All Modules</option>
-              <option value="Appointment">Appointment</option>
-              <option value="Patient">Patient</option>
-              <option value="User">User</option>
-              <option value="Branch">Branch</option>
+              {MODULE_OPTIONS.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
             </select>
           </div>
           <div>
@@ -99,6 +124,56 @@ export default function AuditLogPage() {
         </div>
       </div>
 
+      {/* Bulk actions */}
+      <div className="flex items-center justify-between text-sm text-slate-600">
+        <div>
+          {selectedIds.length > 0 ? `${selectedIds.length} selected` : 'No items selected'}
+        </div>
+        <button
+          onClick={() => {
+            if (selectedIds.length === 0) return;
+            setConfirmOpen(true);
+          }}
+          disabled={selectedIds.length === 0 || deleteMutation.isPending}
+          className="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {deleteMutation.isPending ? 'Deleting...' : 'Delete Selected'}
+        </button>
+      </div>
+
+      {/* Confirm Delete Modal */}
+      {confirmOpen && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl animate-slide-up">
+            <div className="p-5 border-b border-slate-100">
+              <h2 className="font-semibold text-slate-900">Delete audit logs?</h2>
+              <p className="text-sm text-slate-500 mt-1">
+                You are about to delete {selectedIds.length} audit log{selectedIds.length !== 1 ? 's' : ''}. This action cannot be undone.
+              </p>
+            </div>
+            <div className="p-5 flex gap-3">
+              <button
+                onClick={() => {
+                  setConfirmOpen(false);
+                  deleteMutation.mutate(selectedIds);
+                }}
+                className="btn-primary flex-1"
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+              <button
+                onClick={() => setConfirmOpen(false)}
+                className="btn-secondary flex-1"
+                disabled={deleteMutation.isPending}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="card p-0 overflow-hidden">
         {isLoading ? (
@@ -116,6 +191,19 @@ export default function AuditLogPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
+                  <th className="text-left px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedIds(logs.map((l: any) => l._id));
+                        } else {
+                          setSelectedIds([]);
+                        }
+                      }}
+                    />
+                  </th>
                   {['Date & Time', 'Action', 'Module', 'Performed By', 'Details'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-slate-500 font-medium text-xs uppercase tracking-wide">{h}</th>
                   ))}
@@ -124,6 +212,19 @@ export default function AuditLogPage() {
               <tbody>
                 {logs.map((log: any) => (
                   <tr key={log._id} className="border-b border-slate-50 hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(log._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds(prev => [...prev, log._id]);
+                          } else {
+                            setSelectedIds(prev => prev.filter(id => id !== log._id));
+                          }
+                        }}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-slate-600">
                       <div className="flex items-center gap-2">
                         <Calendar size={14} className="text-slate-400" />
@@ -143,7 +244,14 @@ export default function AuditLogPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <User size={14} className="text-slate-400" />
-                        {log.performedBy?.name || 'Unknown'}
+                        <div>
+                          <div>{log.performedBy?.name || 'Unknown'}</div>
+                          {log.performedBy && (
+                            <div className="text-xs text-slate-400">
+                              {log.performedBy.role} - {log.performedBy.branchId?.name || 'No branch'}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-600 max-w-md truncate">
@@ -159,4 +267,5 @@ export default function AuditLogPage() {
     </div>
   );
 }
+
 

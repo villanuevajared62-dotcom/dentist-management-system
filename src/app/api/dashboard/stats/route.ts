@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Appointment from '@/models/Appointment';
 import { requireSession, successResponse } from '@/lib/api-helpers';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
 
 /**
  * GET /api/dashboard/stats
@@ -10,6 +10,8 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
  * - Appointments per day for current week
  * - Appointment status breakdown
  * - Appointments per branch
+ * 
+ * OPTIMIZED: Uses single aggregation query instead of multiple separate calls
  */
 export async function GET(req: NextRequest) {
   const { error } = await requireSession(['admin']);
@@ -23,21 +25,43 @@ export async function GET(req: NextRequest) {
   const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
   const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
   
-  // Generate all days of the week
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-  
-  // Appointments per day this week
-  const weeklyAppointments = await Promise.all(
-    weekDays.map(async (day) => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const count = await Appointment.countDocuments({ date: dateStr });
-      return {
-        day: format(day, 'EEE'), // Mon, Tue, etc.
-        date: dateStr,
-        count,
-      };
-    })
-  );
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+  const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
+
+  // OPTIMIZATION: Single aggregation query for weekly appointments
+  // Instead of 7 separate countDocuments calls
+  const weeklyAggregation = await Appointment.aggregate([
+    {
+      $match: {
+        date: { $gte: weekStartStr, $lte: weekEndStr }
+      }
+    },
+    {
+      $group: {
+        _id: '$date',
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  // Create a map for quick lookup
+  const weeklyCountMap = weeklyAggregation.reduce((acc, item) => {
+    acc[item._id] = item.count;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Generate all days of the week with their counts
+  const weekDays: { day: string; date: string; count: number }[] = [];
+  const current = new Date(weekStart);
+  while (current <= weekEnd) {
+    const dateStr = format(current, 'yyyy-MM-dd');
+    weekDays.push({
+      day: format(current, 'EEE'), // Mon, Tue, etc.
+      date: dateStr,
+      count: weeklyCountMap[dateStr] || 0,
+    });
+    current.setDate(current.getDate() + 1);
+  }
 
   // Appointment status breakdown (all time)
   const statusBreakdown = await Appointment.aggregate([
@@ -78,12 +102,15 @@ export async function GET(req: NextRequest) {
       },
     },
     {
-      $unwind: '$branch',
+      $unwind: {
+        path: '$branch',
+        preserveNullAndEmptyArrays: true,
+      },
     },
     {
       $project: {
         branchId: '$_id',
-        branchName: '$branch.name',
+        branchName: { $ifNull: ['$branch.name', 'Unknown'] },
         count: 1,
         _id: 0,
       },
@@ -94,7 +121,7 @@ export async function GET(req: NextRequest) {
   ]);
 
   return successResponse({
-    weeklyAppointments,
+    weeklyAppointments: weekDays,
     statusBreakdown: statusData,
     branchAppointments,
   });

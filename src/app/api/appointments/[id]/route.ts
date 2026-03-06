@@ -65,20 +65,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (error) return error;
 
   await connectDB();
-  const appt = await Appointment.findByIdAndUpdate(
-    params.id,
-    { status: 'Cancelled' },
-    { new: true }
-  );
+  const appt = await Appointment.findByIdAndDelete(params.id);
   if (!appt) return errorResponse('Appointment not found', 404);
 
   // Create audit log entry
   await createAuditLog(
-    'CANCEL',
+    'DELETE',
     'Appointment',
     session!.user.id,
-    `Cancelled appointment ${params.id}`
+    `Deleted appointment ${params.id}`
   );
 
-  return successResponse({ message: 'Appointment cancelled' });
+  return successResponse({ message: 'Appointment deleted' });
 }

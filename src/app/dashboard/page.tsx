@@ -20,7 +20,7 @@ async function getDashboardData(role: string, userId: string) {
     const [totalAppts, todayAppts, patients, branches, dentists] = await Promise.all([
       Appointment.countDocuments(),
       Appointment.countDocuments({ date: today }),
-      Patient.countDocuments(),
+      Patient.countDocuments({ isActive: true }),
       Branch.countDocuments({ isActive: true }),
       Dentist.countDocuments({ isActive: true }),
     ]);
@@ -37,7 +37,7 @@ async function getDashboardData(role: string, userId: string) {
   if (role === 'staff') {
     const [todayAppts, patients] = await Promise.all([
       Appointment.countDocuments({ date: today }),
-      Patient.countDocuments(),
+      Patient.countDocuments({ isActive: true }),
     ]);
     const recentAppts = await Appointment.find({ date: today })
       .populate('patientId', 'firstName lastName')

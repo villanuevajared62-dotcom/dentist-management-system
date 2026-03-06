@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { STATUS_COLORS, formatTime, formatDate } from '@/lib/utils';
 import { AppointmentStatus } from '@/types';
 import { useState, useEffect } from 'react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function AppointmentDetailPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession();
@@ -16,6 +17,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
   const role = session?.user?.role;
   const [notes, setNotes] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   
   // Ensure params.id is available
   const appointmentId = params?.id;
@@ -62,7 +64,7 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
 
   const cancelMutation = useMutation({
     mutationFn: () => fetch(`/api/appointments/${appointmentId}`, { method: 'DELETE' }),
-    onSuccess: () => { toast.success('Appointment cancelled'); router.push('/dashboard/appointments'); },
+    onSuccess: () => { toast.success('Appointment deleted'); router.push('/dashboard/appointments'); },
   });
 
   if (isLoading) return <div className="flex items-center justify-center h-64 text-slate-400">Loading…</div>;
@@ -133,13 +135,27 @@ export default function AppointmentDetailPage({ params }: { params: { id: string
             Edit Appointment
           </Link>
           <button
-            onClick={() => { if (confirm('Cancel this appointment?')) cancelMutation.mutate(); }}
+            onClick={() => setConfirmOpen(true)}
             className="btn-danger flex-1 flex items-center justify-center gap-2"
           >
-            <XCircle size={16} /> Cancel Appointment
+            <XCircle size={16} /> Delete Appointment
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmOpen}
+        title="Delete appointment?"
+        message="This action cannot be undone."
+        confirmLabel="Yes, Delete"
+        confirmClassName="btn-danger"
+        loading={cancelMutation.isPending}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          cancelMutation.mutate();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }
