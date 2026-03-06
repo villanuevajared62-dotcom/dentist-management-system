@@ -134,7 +134,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
+        token.role = user.role as 'admin' | 'staff' | 'dentist';
         token.branchId = user.branchId;
       }
       // Handle session updates
@@ -146,7 +146,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.role = token.role as string;
+        session.user.role = token.role as 'admin' | 'staff' | 'dentist';
         session.user.branchId = token.branchId as string;
       }
       return session;
