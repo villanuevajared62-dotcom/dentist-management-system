@@ -43,43 +43,33 @@ export const authOptions: NextAuthOptions = {
     error: '/login',
   },
 
-  // ✅ FIXED: Proper cookie configuration for production domains (Vercel)
+  // Cookie configuration - use defaults for Vercel
   cookies: {
     sessionToken: {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: 'none', // Required for cross-origin in Vercel
+        sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
-        // Dynamically set domain for production Vercel deployments
-        ...(process.env.NODE_ENV === 'production' && {
-          domain: getCookieDomain(),
-        }),
       },
     },
     callbackUrl: {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.callback-url`,
       options: {
         httpOnly: true,
-        sameSite: 'none', // Required for cross-origin in Vercel
+        sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
-        ...(process.env.NODE_ENV === 'production' && {
-          domain: getCookieDomain(),
-        }),
       },
     },
     csrfToken: {
       name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.csrf-token`,
       options: {
         httpOnly: true,
-        sameSite: 'none', // Required for cross-origin in Vercel
+        sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
-        ...(process.env.NODE_ENV === 'production' && {
-          domain: getCookieDomain(),
-        }),
       },
     },
   },
