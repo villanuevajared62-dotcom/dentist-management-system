@@ -131,7 +131,7 @@ export default function AccountsPage() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="page-title">Staff Accounts</h1>
         <button onClick={() => setModal(true)} className="btn-primary flex items-center gap-2">
           <Plus size={16} /> Add Account
@@ -146,71 +146,73 @@ export default function AccountsPage() {
             <Users className="mr-2" size={20} /> No staff accounts yet
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                {['Name','Email','Role','Status','Actions'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-slate-500 font-medium text-xs uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((u: any) => {
-                const Icon = ROLE_ICONS[u.role] || Users;
-                return (
-                  <tr key={u._id} className="border-b border-slate-50 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold">
-                        {u.name[0].toUpperCase()}
-                      </div>
-                      {u.name}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">{u.email}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                        <Icon size={11} /> {u.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                        {u.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-3">
-                        {u.isActive && (
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-sm min-w-[720px]">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  {['Name','Email','Role','Status','Actions'].map(h => (
+                    <th key={h} className="text-left px-4 py-3 text-slate-500 font-medium text-xs uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((u: any) => {
+                  const Icon = ROLE_ICONS[u.role] || Users;
+                  return (
+                    <tr key={u._id} className="border-b border-slate-50 hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold">
+                          {u.name[0].toUpperCase()}
+                        </div>
+                        {u.name}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">{u.email}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                          <Icon size={11} /> {u.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                          {u.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-3">
+                          {u.isActive && (
+                            <button
+                              onClick={() => openResetModal(u)}
+                              className="text-brand-600 hover:underline text-xs font-medium flex items-center gap-1"
+                            >
+                              <KeyRound size={12} /> Reset Password
+                            </button>
+                          )}
                           <button
-                            onClick={() => openResetModal(u)}
-                            className="text-brand-600 hover:underline text-xs font-medium flex items-center gap-1"
+                            onClick={() => openViewModal(u)}
+                            className="text-slate-600 hover:underline text-xs font-medium flex items-center gap-1"
                           >
-                            <KeyRound size={12} /> Reset Password
+                            <Eye size={12} /> View
                           </button>
-                        )}
-                        <button
-                          onClick={() => openViewModal(u)}
-                          className="text-slate-600 hover:underline text-xs font-medium flex items-center gap-1"
-                        >
-                          <Eye size={12} /> View
-                        </button>
-                        <button
-                          onClick={() => openEditModal(u)}
-                          className="text-amber-600 hover:underline text-xs font-medium flex items-center gap-1"
-                        >
-                          <Pencil size={12} /> Edit
-                        </button>
-                        <button
-                          onClick={() => openDeleteModal(u._id)}
-                          className="text-red-500 hover:underline text-xs font-medium"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          <button
+                            onClick={() => openEditModal(u)}
+                            className="text-amber-600 hover:underline text-xs font-medium flex items-center gap-1"
+                          >
+                            <Pencil size={12} /> Edit
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(u._id)}
+                            className="text-red-500 hover:underline text-xs font-medium"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -226,7 +228,7 @@ export default function AccountsPage() {
               <div><label className="label">Full Name *</label><input className="input" value={form.name} onChange={e => set('name', e.target.value)} required /></div>
               <div><label className="label">Email *</label><input type="email" className="input" value={form.email} onChange={e => set('email', e.target.value)} required /></div>
               <div><label className="label">Password *</label><input type="password" className="input" placeholder="Min 8 characters" value={form.password} onChange={e => set('password', e.target.value)} required minLength={8} /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Role *</label>
                   <select className="input" value={form.role} onChange={e => set('role', e.target.value)}>
@@ -385,7 +387,7 @@ export default function AccountsPage() {
                 <label className="label">Email *</label>
                 <input type="email" className="input" value={editForm.email} onChange={e => setEdit('email', e.target.value)} required />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Role *</label>
                   <select className="input" value={editForm.role} onChange={e => setEdit('role', e.target.value)}>

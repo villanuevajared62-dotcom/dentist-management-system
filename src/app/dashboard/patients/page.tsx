@@ -74,11 +74,13 @@ export default function PatientsPage() {
       <div className="card p-0 overflow-hidden">
         {isLoading ? (
           <div className="p-4">
-            <SkeletonTable 
-              rows={7} 
-              columns={7}
-              columnWidths={['w-40', 'w-20', 'w-28', 'w-28', 'w-40', 'w-24', 'w-20']}
-            />
+            <div className="w-full overflow-x-auto">
+              <SkeletonTable 
+                rows={7} 
+                columns={7}
+                columnWidths={['w-40', 'w-20', 'w-28', 'w-28', 'w-40', 'w-24', 'w-20']}
+              />
+            </div>
           </div>
         ) : patients.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
@@ -86,8 +88,8 @@ export default function PatientsPage() {
             <p>{search ? 'No patients match your search' : 'No patients registered yet'}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="w-full overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
                   {['Name','Gender','Date of Birth','Phone','Email','Registered','Actions'].map(h => (
@@ -124,7 +126,7 @@ export default function PatientsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+          </table>
           </div>
         )}
       </div>

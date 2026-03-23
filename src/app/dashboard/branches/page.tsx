@@ -64,7 +64,7 @@ export default function BranchesPage() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="page-title">Branches</h1>
         <button onClick={openCreate} className="btn-primary flex items-center gap-2">
           <Plus size={16} /> Add Branch
@@ -118,7 +118,7 @@ export default function BranchesPage() {
               <div><label className="label">Branch Name *</label><input className="input" value={form.name} onChange={e => set('name', e.target.value)} required /></div>
               <div><label className="label">Address *</label><input className="input" value={form.address} onChange={e => set('address', e.target.value)} required /></div>
               <div><label className="label">City *</label><input className="input" value={form.city} onChange={e => set('city', e.target.value)} required /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><label className="label">Phone *</label><input className="input" value={form.phone} onChange={e => set('phone', e.target.value)} required /></div>
                 <div><label className="label">Email *</label><input type="email" className="input" value={form.email} onChange={e => set('email', e.target.value)} required /></div>
               </div>

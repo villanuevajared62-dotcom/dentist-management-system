@@ -25,11 +25,13 @@ export default function AppointmentsLoading() {
       {/* Table skeleton */}
       <div className="card p-0 overflow-hidden">
         <div className="p-4">
-          <SkeletonTable 
-            rows={7} 
-            columns={7}
-            columnWidths={['w-28', 'w-32', 'w-28', 'w-24', 'w-32', 'w-20', 'w-20']}
-          />
+          <div className="w-full overflow-x-auto">
+            <SkeletonTable 
+              rows={7} 
+              columns={7}
+              columnWidths={['w-28', 'w-32', 'w-28', 'w-24', 'w-32', 'w-20', 'w-20']}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -70,7 +70,7 @@ export default function NewPatientPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="card space-y-5">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">First Name *</label>
             <input className="input" value={form.firstName} onChange={e => set('firstName', e.target.value)} required />
@@ -81,7 +81,7 @@ export default function NewPatientPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">Phone *</label>
             <input 
@@ -105,7 +105,7 @@ export default function NewPatientPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">Date of Birth *</label>
             <input className="input" type="date" value={form.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} required />

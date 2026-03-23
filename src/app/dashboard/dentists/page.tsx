@@ -82,7 +82,7 @@ const createMutation = useMutation({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="page-title">Dentists</h1>
         <button onClick={() => setModal(true)} className="btn-primary flex items-center gap-2">
           <Plus size={16} /> Add Dentist Profile
@@ -147,7 +147,7 @@ const createMutation = useMutation({
                   {branches.map((b: any) => <option key={b._id} value={b._id}>{b.name}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><label className="label">Specialty *</label><input className="input" placeholder="e.g. General Dentistry" value={form.specialty} onChange={e => set('specialty', e.target.value)} required /></div>
                 <div><label className="label">License # *</label><input className="input" value={form.licenseNumber} onChange={e => set('licenseNumber', e.target.value)} required /></div>
               </div>

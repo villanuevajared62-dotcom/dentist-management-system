@@ -187,8 +187,8 @@ export default function AuditLogPage() {
             <p>No audit logs found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="w-full overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
                   <th className="text-left px-4 py-3">
@@ -260,7 +260,7 @@ export default function AuditLogPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+          </table>
           </div>
         )}
       </div>

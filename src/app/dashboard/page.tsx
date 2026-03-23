@@ -75,7 +75,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Today's Appointments" value={data.todayAppts ?? 0} icon={Calendar} color="brand" />
         {'patients' in data && <StatCard label="Total Patients" value={data.patients ?? 0} icon={Users} color="emerald" />}
         {'branches' in data && <StatCard label="Active Branches" value={data.branches ?? 0} icon={Building2} color="violet" />}
@@ -101,8 +101,8 @@ export default async function DashboardPage() {
             <p>No appointments scheduled for today</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="w-full overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
               <thead>
                 <tr className="border-b border-slate-100">
                   <th className="text-left py-2 px-3 text-slate-500 font-medium">Time</th>
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+          </table>
           </div>
         )}
       </div>

@@ -17,11 +17,13 @@ export default function PatientsLoading() {
       {/* Table skeleton */}
       <div className="card p-0 overflow-hidden">
         <div className="p-4">
-          <SkeletonTable 
-            rows={7} 
-            columns={7}
-            columnWidths={['w-40', 'w-20', 'w-28', 'w-28', 'w-40', 'w-24', 'w-20']}
-          />
+          <div className="w-full overflow-x-auto">
+            <SkeletonTable 
+              rows={7} 
+              columns={7}
+              columnWidths={['w-40', 'w-20', 'w-28', 'w-28', 'w-40', 'w-24', 'w-20']}
+            />
+          </div>
         </div>
       </div>
 

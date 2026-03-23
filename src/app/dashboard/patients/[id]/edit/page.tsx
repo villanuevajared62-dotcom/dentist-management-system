@@ -79,15 +79,15 @@ export default function EditPatientPage({ params }: { params: { id: string } }) 
       </div>
 
       <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate(form); }} className="card space-y-5">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><label className="label">First Name *</label><input className="input" value={form.firstName} onChange={e => set('firstName', e.target.value)} required /></div>
           <div><label className="label">Last Name *</label><input className="input" value={form.lastName} onChange={e => set('lastName', e.target.value)} required /></div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><label className="label">Phone *</label><input className="input" type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} required /></div>
           <div><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={e => set('email', e.target.value)} /></div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><label className="label">Date of Birth *</label><input className="input" type="date" value={form.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} required /></div>
           <div><label className="label">Gender *</label><select className="input" value={form.gender} onChange={e => set('gender', e.target.value)}><option>Male</option><option>Female</option><option>Other</option></select></div>
         </div>
