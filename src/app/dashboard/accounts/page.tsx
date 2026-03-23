@@ -10,6 +10,7 @@ const ROLE_ICONS: Record<string, React.ElementType> = {
 };
 
 const emptyForm = { name: '', email: '', password: '', role: 'staff' as const, branchId: '' };
+const emptyEditForm = { name: '', email: '', role: 'staff' as const, branchId: '' };
 
 export default function AccountsPage() {
   const qc = useQueryClient();
@@ -21,7 +22,7 @@ export default function AccountsPage() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [newPassword, setNewPassword] = useState('');
   const [form, setForm] = useState(emptyForm);
-  const [editForm, setEditForm] = useState(emptyForm);
+  const [editForm, setEditForm] = useState(emptyEditForm);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -55,7 +56,7 @@ export default function AccountsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (payload: { id: string; data: typeof editForm }) => fetch(`/api/users/${payload.id}`, {
+    mutationFn: (payload: { id: string; data: typeof emptyEditForm }) => fetch(`/api/users/${payload.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload.data),
@@ -115,7 +116,6 @@ export default function AccountsPage() {
     setEditForm({
       name: user.name || '',
       email: user.email || '',
-      password: '',
       role: user.role || 'staff',
       branchId: user.branchId?._id || '',
     });
