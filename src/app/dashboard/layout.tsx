@@ -1,12 +1,12 @@
-import { Sidebar } from '@/components/layout/Sidebar';
+import { TopNav } from '@/components/layout/TopNav';
 import { SessionTimeout } from '@/components/ui/SessionTimeout';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <main className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8 min-h-screen overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50">
+      <TopNav />
+      <main className="p-4 sm:p-6 lg:p-8 min-h-screen overflow-x-hidden">
         <ErrorBoundary>
           {children}
         </ErrorBoundary>
