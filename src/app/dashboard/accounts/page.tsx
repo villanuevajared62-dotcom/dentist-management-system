@@ -372,7 +372,7 @@ export default function AccountsPage() {
                   name: editForm.name,
                   email: editForm.email,
                   role: editForm.role,
-                  branchId: editForm.branchId || undefined,
+                  branchId: editForm.branchId,
                 }});
               }}
               className="p-5 space-y-4"
