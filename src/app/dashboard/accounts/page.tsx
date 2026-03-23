@@ -2,7 +2,7 @@
 import { useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Plus, UserCog, X, ShieldCheck, Stethoscope, Users, KeyRound, Eye, Pencil } from 'lucide-react';
+import { Plus, UserCog, X, ShieldCheck, Stethoscope, Users, KeyRound, Eye, EyeOff, Pencil } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const ROLE_ICONS: Record<string, React.ElementType> = {
@@ -21,6 +21,8 @@ export default function AccountsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [newPassword, setNewPassword] = useState('');
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editForm, setEditForm] = useState(emptyEditForm);
 
@@ -227,7 +229,28 @@ export default function AccountsPage() {
             <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(form); }} className="p-5 space-y-4">
               <div><label className="label">Full Name *</label><input className="input" value={form.name} onChange={e => set('name', e.target.value)} required /></div>
               <div><label className="label">Email *</label><input type="email" className="input" value={form.email} onChange={e => set('email', e.target.value)} required /></div>
-              <div><label className="label">Password *</label><input type="password" className="input" placeholder="Min 8 characters" value={form.password} onChange={e => set('password', e.target.value)} required minLength={8} /></div>
+              <div>
+                <label className="label">Password *</label>
+                <div className="relative">
+                  <input
+                    type={showCreatePassword ? 'text' : 'password'}
+                    className="input pr-10"
+                    placeholder="Min 8 characters"
+                    value={form.password}
+                    onChange={e => set('password', e.target.value)}
+                    required
+                    minLength={8}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCreatePassword(v => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                    aria-label={showCreatePassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showCreatePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Role *</label>
@@ -288,15 +311,25 @@ export default function AccountsPage() {
               </div>
               <div>
                 <label className="label">New Password *</label>
-                <input 
-                  type="password" 
-                  className="input" 
-                  placeholder="Minimum 8 characters"
-                  value={newPassword} 
-                  onChange={e => setNewPassword(e.target.value)}
-                  required 
-                  minLength={8}
-                />
+                <div className="relative">
+                  <input 
+                    type={showResetPassword ? 'text' : 'password'}
+                    className="input pr-10" 
+                    placeholder="Minimum 8 characters"
+                    value={newPassword} 
+                    onChange={e => setNewPassword(e.target.value)}
+                    required 
+                    minLength={8}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(v => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                    aria-label={showResetPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 <p className="text-xs text-slate-400 mt-1">Password must be at least 8 characters</p>
               </div>
               <div className="flex gap-3 pt-2">
