@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { STATUS_COLORS, formatTime } from '@/lib/utils';
 import { AppointmentStatus } from '@/types';
 import DashboardCharts from '@/components/dashboard/Charts';
+import { redirect } from 'next/navigation';
 
 async function getDashboardData(role: string, userId: string) {
   await connectDB();
@@ -62,15 +63,20 @@ async function getDashboardData(role: string, userId: string) {
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
-  const role = session!.user.role;
-  const data = await getDashboardData(role, session!.user.id);
+  if (!session?.user) {
+    redirect('/login');
+  }
+
+  const role = session.user.role ?? 'staff';
+  const data = await getDashboardData(role, session.user.id);
   const today = format(new Date(), 'EEEE, MMMM d, yyyy');
+  const firstName = (session.user.name || session.user.email || 'there').split(' ')[0];
 
   return (
     <div className="animate-fade-in space-y-6">
       {/* Header */}
       <div>
-        <h1 className="page-title">Welcome back, {session!.user.name.split(' ')[0]} 👋</h1>
+        <h1 className="page-title">Welcome back, {firstName} 👋</h1>
         <p className="text-slate-500 text-sm mt-1">{today}</p>
       </div>
 
@@ -95,7 +101,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {data.recentAppts.length === 0 ? (
+        {data.recentAppts?.length === 0 ? (
           <div className="text-center py-10 text-slate-400">
             <Calendar className="mx-auto mb-2 opacity-40" size={40} />
             <p>No appointments scheduled for today</p>
@@ -170,3 +176,5 @@ function StatCard({
     </div>
   );
 }
+
+

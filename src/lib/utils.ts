@@ -85,7 +85,15 @@ export function formatDate(date: string | Date): string {
 
 /** Format time "HH:MM" → "9:00 AM" */
 export function formatTime(time: string): string {
-  const [h, m] = time.split(':').map(Number);
+  if (!time || typeof time !== 'string') return '';
+  let normalized = time.trim();
+  // Accept "930" or "0930" and normalize to "09:30"
+  if (/^\d{3,4}$/.test(normalized)) {
+    normalized = normalized.padStart(4, '0');
+    normalized = `${normalized.slice(0, 2)}:${normalized.slice(2)}`;
+  }
+  const [h, m] = normalized.split(':').map(Number);
+  if (h == null || m == null || Number.isNaN(h) || Number.isNaN(m)) return '';
   const period = h >= 12 ? 'PM' : 'AM';
   const hour = h % 12 || 12;
   return `${hour}:${m.toString().padStart(2, '0')} ${period}`;

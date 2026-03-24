@@ -75,7 +75,7 @@ export default function AppointmentsPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data: rawData, isLoading } = useQuery({
+  const { data: rawData, isLoading, error } = useQuery({
     queryKey: ['appointments', date, status, search],
     queryFn: () => {
       const params: Record<string, string> = {};
@@ -187,6 +187,12 @@ export default function AppointmentsPage() {
                 columnWidths={['w-28', 'w-32', 'w-28', 'w-24', 'w-32', 'w-20', 'w-20']}
               />
             </div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-16 text-slate-500">
+            <Calendar className="mx-auto mb-2 opacity-40" size={40} />
+            <p className="font-medium">Unable to load appointments</p>
+            <p className="text-sm mt-1">Please check your server/API connection and try again.</p>
           </div>
         ) : appointments.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
