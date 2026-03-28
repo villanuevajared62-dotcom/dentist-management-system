@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Appointment from '@/models/Appointment';
 import Dentist from '@/models/Dentist';
+import Patient from '@/models/Patient';
 import { AppointmentSchema } from '@/lib/validations';
 import { requireSession, successResponse, errorResponse, createAuditLog } from '@/lib/api-helpers';
 import { addMinutes, sanitizeInput } from '@/lib/utils';
@@ -20,17 +21,25 @@ export async function GET(req: NextRequest) {
   if (searchParams.get('patientId')) filter.patientId = searchParams.get('patientId');
   if (searchParams.get('status'))    filter.status    = searchParams.get('status');
 
+  // Connect to database once at the start
+  await connectDB();
+
   // Search by patient name (firstName or lastName) using regex
   const searchQuery = searchParams.get('search');
   if (searchQuery) {
-    filter.$or = [
-      { 'patientId.firstName': { $regex: searchQuery, $options: 'i' } },
-      { 'patientId.lastName': { $regex: searchQuery, $options: 'i' } },
-    ];
-  }
+    const matchedPatients = await Patient.find({
+      $or: [
+        { firstName: { $regex: searchQuery, $options: 'i' } },
+        { lastName: { $regex: searchQuery, $options: 'i' } },
+      ],
+    }).select('_id').lean();
 
-  // Connect to database once at the start
-  await connectDB();
+    const patientIds = matchedPatients.map((p: any) => p._id);
+    if (patientIds.length === 0) {
+      return successResponse([]);
+    }
+    filter.patientId = { $in: patientIds };
+  }
 
   // Dentist role: only see their own appointments
   if (session!.user.role === 'dentist') {
