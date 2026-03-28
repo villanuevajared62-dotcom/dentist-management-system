@@ -19,42 +19,13 @@ export async function GET(req: NextRequest) {
 
   await connectDB();
   
-  // Get dentists with profiles
+  // Get dentists with active profiles
   const dentistsWithProfile = await Dentist.find(filter)
     .populate('userId', 'name email')
     .populate('branchId', 'name city')
     .sort({ createdAt: -1 });
 
-  // If no branch filter, also get users with dentist role who don't have a profile yet
-  if (!branchId) {
-    const usersWithoutProfile = await User.find({ 
-      role: 'dentist', 
-      isActive: true 
-    }).populate('branchId', 'name city');
-    
-    // Combine and filter out duplicates
-    const combined: any[] = [...dentistsWithProfile];
-    for (const user of usersWithoutProfile) {
-      const hasProfile = dentistsWithProfile.some((d: any) => 
-        d.userId && d.userId._id.toString() === user._id.toString()
-      );
-      if (!hasProfile) {
-        combined.push({
-          _id: user._id,
-          userId: { _id: user._id, name: user.name, email: user.email },
-          branchId: user.branchId,
-          specialty: 'General Dentistry',
-          licenseNumber: 'N/A',
-          schedule: [],
-          isActive: true,
-          isPending: true // Flag to indicate this user needs a profile
-        } as any);
-      }
-    }
-    
-    return successResponse(combined);
-  }
-
+  // Only return actual dentist profiles (matches dentists collection)
   return successResponse(dentistsWithProfile);
 }
 
@@ -70,7 +41,31 @@ export async function POST(req: NextRequest) {
   await connectDB();
 
   const existing = await Dentist.findOne({ userId: parsed.data.userId });
-  if (existing) return errorResponse('This user already has a dentist profile', 409);
+  if (existing) {
+    if (!existing.isActive) {
+      const reactivated = await Dentist.findByIdAndUpdate(
+        existing._id,
+        { ...parsed.data, isActive: true },
+        { new: true }
+      )
+        .populate('userId', 'name email')
+        .populate('branchId', 'name city');
+      const dentistUserName =
+        typeof reactivated.userId === 'object' &&
+        reactivated.userId !== null &&
+        'name' in reactivated.userId
+          ? (reactivated.userId as { name?: string }).name || 'Unknown'
+          : 'Unknown';
+      await createAuditLog(
+        'UPDATE',
+        'Dentist',
+        session!.user.id,
+        `Reactivated dentist profile for ${dentistUserName}`
+      );
+      return successResponse(reactivated);
+    }
+    return errorResponse('This user already has a dentist profile', 409);
+  }
 
   const dentist = await Dentist.create(parsed.data);
   const populated = await dentist.populate([
