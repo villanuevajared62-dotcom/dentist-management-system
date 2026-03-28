@@ -2,7 +2,7 @@
 import { useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Plus, Building2, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Building2, Pencil, Trash2, X, RefreshCw } from 'lucide-react';
 import { STALE_TIMES } from '@/app/providers';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
@@ -18,7 +18,7 @@ export default function BranchesPage() {
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: async () => {
-      const res = await fetch('/api/branches');
+      const res = await fetch('/api/branches?includeInactive=1');
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json.message || 'Failed to fetch branches');
@@ -52,6 +52,20 @@ export default function BranchesPage() {
     onSuccess: () => { toast.success('Branch removed'); qc.invalidateQueries({ queryKey: ['branches'] }); },
   });
 
+  const reactivateMutation = useMutation({
+    mutationFn: (id: string) => fetch(`/api/branches/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: true }),
+    }),
+    onSuccess: async (res) => {
+      const data = await res.json();
+      if (!res.ok) return toast.error(data.message || 'Failed to reactivate branch');
+      toast.success('Branch reactivated');
+      await qc.fetchQuery({ queryKey: ['branches'] });
+    },
+  });
+
   function openCreate() { setForm(emptyForm); setModal('create'); }
   function openEdit(b: any) { setForm({ name: b.name, address: b.address, city: b.city, phone: b.phone, email: b.email }); setEditId(b._id); setModal('edit'); }
   function closeModal() { setModal(null); setForm(emptyForm); }
@@ -81,22 +95,39 @@ export default function BranchesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {branches.map((b: any) => (
-            <div key={b._id} className="card hover:shadow-md transition-shadow">
+            <div key={b._id} className={`card hover:shadow-md transition-shadow ${b.isActive === false ? 'opacity-80' : ''}`}>
               <div className="flex items-start justify-between">
                 <div className="w-10 h-10 bg-brand-100 text-brand-600 rounded-xl flex items-center justify-center">
                   <Building2 size={18} />
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => openEdit(b)} className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition">
-                    <Pencil size={14} />
-                  </button>
-                  <button onClick={() => setDeleteId(b._id)}
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
-                    <Trash2 size={14} />
-                  </button>
+                  {b.isActive === false ? (
+                    <button
+                      onClick={() => reactivateMutation.mutate(b._id)}
+                      className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                      title="Reactivate"
+                    >
+                      <RefreshCw size={14} />
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => openEdit(b)} className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition">
+                        <Pencil size={14} />
+                      </button>
+                      <button onClick={() => setDeleteId(b._id)}
+                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               <h3 className="font-bold text-slate-900 mt-3">{b.name}</h3>
+              {b.isActive === false && (
+                <span className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                  Inactive
+                </span>
+              )}
               <p className="text-sm text-slate-500 mt-1">{b.address}</p>
               <p className="text-sm text-slate-500">{b.city}</p>
               <p className="text-sm text-brand-600 mt-2">{b.phone}</p>

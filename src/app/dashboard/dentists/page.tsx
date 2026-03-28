@@ -2,7 +2,7 @@
 import { useState, FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Plus, Stethoscope, X, Trash2 } from 'lucide-react';
+import { Plus, Stethoscope, X, Trash2, RefreshCw } from 'lucide-react';
 import { STALE_TIMES } from '@/app/providers';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
@@ -27,7 +27,7 @@ export default function DentistsPage() {
 
   const { data: dentists = [], isLoading } = useQuery({
     queryKey: ['dentists'],
-    queryFn: () => fetch('/api/dentists').then(r => r.json()).then(r => r.data),
+    queryFn: () => fetch('/api/dentists?includeInactive=1').then(r => r.json()).then(r => r.data),
     staleTime: STALE_TIMES.dentists,
   });
 
@@ -61,6 +61,20 @@ const createMutation = useMutation({
       qc.invalidateQueries({ queryKey: ['dentists'] });
     },
     onError: () => toast.error('Failed to deactivate dentist'),
+  });
+
+  const reactivateMutation = useMutation({
+    mutationFn: (id: string) => fetch(`/api/dentists/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: true }),
+    }),
+    onSuccess: async (res) => {
+      const data = await res.json();
+      if (!res.ok) return toast.error(data.message || 'Failed to reactivate dentist');
+      toast.success('Dentist reactivated');
+      qc.invalidateQueries({ queryKey: ['dentists'] });
+    },
   });
 
   function set(k: string, v: unknown) { setForm(f => ({ ...f, [k]: v })); }
@@ -99,7 +113,15 @@ const createMutation = useMutation({
                 <div className="w-10 h-10 bg-brand-100 text-brand-600 rounded-xl flex items-center justify-center mb-3">
                   <Stethoscope size={18} />
                 </div>
-                {d.isActive !== false && (
+                {d.isActive === false ? (
+                  <button
+                    onClick={() => reactivateMutation.mutate(d._id)}
+                    className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                    title="Reactivate"
+                  >
+                    <RefreshCw size={14} />
+                  </button>
+                ) : (
                   <button
                     onClick={() => setDeleteId(d._id)}
                     className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
@@ -110,6 +132,11 @@ const createMutation = useMutation({
                 )}
               </div>
               <h3 className="font-bold text-slate-900">Dr. {d.userId?.name}</h3>
+              {d.isActive === false && (
+                <span className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                  Inactive
+                </span>
+              )}
               <p className="text-sm text-brand-600">{d.specialty}</p>
               <p className="text-xs text-slate-400 mt-1">License: {d.licenseNumber}</p>
               <p className="text-xs text-slate-500 mt-1">📍 {d.branchId?.name}</p>

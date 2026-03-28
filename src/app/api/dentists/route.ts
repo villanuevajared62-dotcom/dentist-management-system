@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
   if (error) return error;
 
   const branchId = req.nextUrl.searchParams.get('branchId');
-  const filter: Record<string, unknown> = { isActive: true };
+  const includeInactive = req.nextUrl.searchParams.get('includeInactive') === '1';
+  const filter: Record<string, unknown> = includeInactive ? {} : { isActive: { $ne: false } };
   if (branchId) filter.branchId = branchId;
 
   await connectDB();

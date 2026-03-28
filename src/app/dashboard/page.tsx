@@ -22,7 +22,7 @@ async function getDashboardData(role: string, userId: string) {
       Appointment.countDocuments(),
       Appointment.countDocuments({ date: today }),
       Patient.countDocuments({ isActive: true }),
-      Branch.countDocuments({ isActive: true }),
+      Branch.countDocuments({ isActive: { $ne: false } }),
       Dentist.countDocuments({ isActive: true }),
     ]);
     const recentAppts = await Appointment.find({ date: today })

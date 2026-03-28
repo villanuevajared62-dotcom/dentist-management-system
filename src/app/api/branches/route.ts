@@ -9,12 +9,16 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 // GET /api/branches — any authenticated user
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { error } = await requireSession();
   if (error) return error;
 
+  const includeInactive = req.nextUrl.searchParams.get('includeInactive') === '1';
+
   await connectDB();
-  const branches = await Branch.find({ isActive: true }).sort({ name: 1 });
+  // Default: show active + legacy docs. includeInactive=1 returns all.
+  const filter = includeInactive ? {} : { isActive: { $ne: false } };
+  const branches = await Branch.find(filter).sort({ name: 1 });
   return successResponse(branches);
 }
 
