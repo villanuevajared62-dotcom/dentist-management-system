@@ -15,8 +15,20 @@ export default function NewPatientPage() {
     medicalHistory: '', allergies: '',
   });
 
+  function normalizePhilPhoneInput(raw: string) {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('+')) {
+      const digits = trimmed.slice(1).replace(/\D/g, '');
+      const withCountry = `+${digits}`;
+      return withCountry.slice(0, 13); // +63 + 10 digits
+    }
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    return digitsOnly.slice(0, 11); // 09 + 9 digits
+  }
+
   function set(k: string, v: string) { 
-    setForm(f => ({ ...f, [k]: v })); 
+    const nextValue = k === 'phone' ? normalizePhilPhoneInput(v) : v;
+    setForm(f => ({ ...f, [k]: nextValue })); 
     // Clear field error when user starts typing
     if (k === 'phone' || k === 'email') {
       setFieldErrors(e => ({ ...e, [k]: undefined }));
@@ -89,6 +101,11 @@ export default function NewPatientPage() {
               type="tel" 
               value={form.phone} 
               onChange={e => set('phone', e.target.value)} 
+              inputMode="numeric"
+              maxLength={form.phone.startsWith('+') ? 13 : 11}
+              pattern="^(09\d{9}|\+639\d{9})$"
+              placeholder="09XXXXXXXXX or +639XXXXXXXXX"
+              title="Use PH mobile format: 09XXXXXXXXX or +639XXXXXXXXX"
               required 
             />
             {fieldErrors.phone && <p className="text-red-500 text-sm mt-1">{fieldErrors.phone}</p>}

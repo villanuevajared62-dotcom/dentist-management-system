@@ -65,7 +65,21 @@ export default function EditPatientPage({ params }: { params: { id: string } }) 
     },
   });
 
-  function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })); }
+  function normalizePhilPhoneInput(raw: string) {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('+')) {
+      const digits = trimmed.slice(1).replace(/\D/g, '');
+      const withCountry = `+${digits}`;
+      return withCountry.slice(0, 13); // +63 + 10 digits
+    }
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    return digitsOnly.slice(0, 11); // 09 + 9 digits
+  }
+
+  function set(k: string, v: string) { 
+    const nextValue = k === 'phone' ? normalizePhilPhoneInput(v) : v;
+    setForm(f => ({ ...f, [k]: nextValue })); 
+  }
 
   if (!ready) return <div className="text-center py-16 text-slate-400">Loading…</div>;
 
@@ -84,7 +98,21 @@ export default function EditPatientPage({ params }: { params: { id: string } }) 
           <div><label className="label">Last Name *</label><input className="input" value={form.lastName} onChange={e => set('lastName', e.target.value)} required /></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><label className="label">Phone *</label><input className="input" type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} required /></div>
+          <div>
+            <label className="label">Phone *</label>
+            <input 
+              className="input" 
+              type="tel" 
+              value={form.phone} 
+              onChange={e => set('phone', e.target.value)} 
+              inputMode="numeric"
+              maxLength={form.phone.startsWith('+') ? 13 : 11}
+              pattern="^(09\d{9}|\+639\d{9})$"
+              placeholder="09XXXXXXXXX or +639XXXXXXXXX"
+              title="Use PH mobile format: 09XXXXXXXXX or +639XXXXXXXXX"
+              required 
+            />
+          </div>
           <div><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={e => set('email', e.target.value)} /></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

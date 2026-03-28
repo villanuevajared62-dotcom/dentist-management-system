@@ -51,7 +51,7 @@ export const PatientSchema = z.object({
   firstName: z.string().min(2).max(50),
   lastName: z.string().min(2).max(50),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
-  phone: z.string().regex(/^[0-9+\-\s()]{7,20}$/, 'Invalid phone number'),
+  phone: z.string().regex(/^(09\d{9}|\+639\d{9})$/, 'Invalid PH mobile number'),
   dateOfBirth: z.string().refine(d => !isNaN(Date.parse(d)), 'Invalid date'),
   gender: z.enum(['Male', 'Female', 'Other']),
   address: z.string().max(255).optional(),
