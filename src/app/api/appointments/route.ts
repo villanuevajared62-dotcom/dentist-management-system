@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import Appointment from '@/models/Appointment';
 import Dentist from '@/models/Dentist';
 import Patient from '@/models/Patient';
+import Branch from '@/models/Branch';
 import { AppointmentSchema } from '@/lib/validations';
 import { requireSession, successResponse, errorResponse, createAuditLog } from '@/lib/api-helpers';
 import { addMinutes, sanitizeInput } from '@/lib/utils';
