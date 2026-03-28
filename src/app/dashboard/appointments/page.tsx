@@ -14,9 +14,12 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 async function fetchAppointments(params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString();
   const res = await fetch(`/api/appointments?${qs}`);
-  if (!res.ok) throw new Error('Failed to fetch appointments');
-  const json = await res.json();
-  return json.data;
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message = json?.message || 'Failed to fetch appointments';
+    throw new Error(message);
+  }
+  return json?.data;
 }
 
 async function deleteAppointment(id: string) {
@@ -192,7 +195,9 @@ export default function AppointmentsPage() {
           <div className="text-center py-16 text-slate-500">
             <Calendar className="mx-auto mb-2 opacity-40" size={40} />
             <p className="font-medium">Unable to load appointments</p>
-            <p className="text-sm mt-1">Please check your server/API connection and try again.</p>
+            <p className="text-sm mt-1">
+              {error instanceof Error ? error.message : 'Please check your server/API connection and try again.'}
+            </p>
           </div>
         ) : appointments.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
