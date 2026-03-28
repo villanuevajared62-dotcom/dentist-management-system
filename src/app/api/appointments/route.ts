@@ -10,66 +10,71 @@ import { addMinutes, sanitizeInput } from '@/lib/utils';
 // GET /api/appointments
 // Query params: date, branchId, dentistId, patientId, status, search
 export async function GET(req: NextRequest) {
-  const { session, error } = await requireSession();
-  if (error) return error;
+  try {
+    const { session, error } = await requireSession();
+    if (error) return error;
 
-  const { searchParams } = req.nextUrl;
-  const filter: Record<string, unknown> = {};
+    const { searchParams } = req.nextUrl;
+    const filter: Record<string, unknown> = {};
 
-  if (searchParams.get('date'))      filter.date      = searchParams.get('date');
-  if (searchParams.get('branchId'))  filter.branchId  = searchParams.get('branchId');
-  if (searchParams.get('patientId')) filter.patientId = searchParams.get('patientId');
-  if (searchParams.get('status'))    filter.status    = searchParams.get('status');
+    if (searchParams.get('date'))      filter.date      = searchParams.get('date');
+    if (searchParams.get('branchId'))  filter.branchId  = searchParams.get('branchId');
+    if (searchParams.get('patientId')) filter.patientId = searchParams.get('patientId');
+    if (searchParams.get('status'))    filter.status    = searchParams.get('status');
 
-  // Connect to database once at the start
-  await connectDB();
+    // Connect to database once at the start
+    await connectDB();
 
-  // Search by patient name (firstName or lastName) using regex
-  const searchQuery = searchParams.get('search');
-  if (searchQuery) {
-    const matchedPatients = await Patient.find({
-      $or: [
-        { firstName: { $regex: searchQuery, $options: 'i' } },
-        { lastName: { $regex: searchQuery, $options: 'i' } },
-      ],
-    }).select('_id').lean();
+    // Search by patient name (firstName or lastName) using regex
+    const searchQuery = searchParams.get('search');
+    if (searchQuery) {
+      const matchedPatients = await Patient.find({
+        $or: [
+          { firstName: { $regex: searchQuery, $options: 'i' } },
+          { lastName: { $regex: searchQuery, $options: 'i' } },
+        ],
+      }).select('_id').lean();
 
-    const patientIds = matchedPatients.map((p: any) => p._id);
-    if (patientIds.length === 0) {
-      return successResponse([]);
+      const patientIds = matchedPatients.map((p: any) => p._id);
+      if (patientIds.length === 0) {
+        return successResponse([]);
+      }
+      filter.patientId = { $in: patientIds };
     }
-    filter.patientId = { $in: patientIds };
-  }
 
-  // Dentist role: only see their own appointments
-  if (session!.user.role === 'dentist') {
-    const dentist = await Dentist.findOne({ userId: session!.user.id });
-    if (dentist) {
-      // Search by dentist profile ID
-      filter.dentistId = dentist._id;
-    } else {
-      // No profile - return empty array (can't see any appointments)
-      filter.dentistId = null;
+    // Dentist role: only see their own appointments
+    if (session!.user.role === 'dentist') {
+      const dentist = await Dentist.findOne({ userId: session!.user.id });
+      if (dentist) {
+        // Search by dentist profile ID
+        filter.dentistId = dentist._id;
+      } else {
+        // No profile - return empty array (can't see any appointments)
+        filter.dentistId = null;
+      }
+    } else if (searchParams.get('dentistId')) {
+      filter.dentistId = searchParams.get('dentistId');
     }
-  } else if (searchParams.get('dentistId')) {
-    filter.dentistId = searchParams.get('dentistId');
+
+    // Date range support: ?dateFrom=&dateTo=
+    if (searchParams.get('dateFrom') || searchParams.get('dateTo')) {
+      const dateRange: Record<string, string> = {};
+      if (searchParams.get('dateFrom')) dateRange.$gte = searchParams.get('dateFrom')!;
+      if (searchParams.get('dateTo'))   dateRange.$lte = searchParams.get('dateTo')!;
+      filter.date = dateRange;
+    }
+
+    const appointments = await Appointment.find(filter)
+      .populate('patientId', 'firstName lastName phone')
+      .populate({ path: 'dentistId', populate: { path: 'userId', select: 'name' } })
+      .populate('branchId', 'name city')
+      .sort({ date: 1, startTime: 1 });
+
+    return successResponse(appointments);
+  } catch (e: any) {
+    console.error('GET /api/appointments error:', e);
+    return errorResponse(e?.message || 'Failed to fetch appointments', 500);
   }
-
-  // Date range support: ?dateFrom=&dateTo=
-  if (searchParams.get('dateFrom') || searchParams.get('dateTo')) {
-    const dateRange: Record<string, string> = {};
-    if (searchParams.get('dateFrom')) dateRange.$gte = searchParams.get('dateFrom')!;
-    if (searchParams.get('dateTo'))   dateRange.$lte = searchParams.get('dateTo')!;
-    filter.date = dateRange;
-  }
-
-  const appointments = await Appointment.find(filter)
-    .populate('patientId', 'firstName lastName phone')
-    .populate({ path: 'dentistId', populate: { path: 'userId', select: 'name' } })
-    .populate('branchId', 'name city')
-    .sort({ date: 1, startTime: 1 });
-
-  return successResponse(appointments);
 }
 
 // POST /api/appointments — staff, admin
