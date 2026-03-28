@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
       )
         .populate('userId', 'name email')
         .populate('branchId', 'name city');
+      if (!reactivated) return errorResponse('Dentist not found', 404);
       const dentistUserName =
         typeof reactivated.userId === 'object' &&
         reactivated.userId !== null &&
