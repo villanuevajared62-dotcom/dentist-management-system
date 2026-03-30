@@ -4,6 +4,13 @@
  */
 import mongoose from 'mongoose';
 
+// ✅ FIXED: Import all models here so they're always registered
+// regardless of which API route is called first
+import '@/models/Branch';
+import '@/models/Patient';
+import '@/models/Dentist';
+import '@/models/Appointment';
+
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
 if (!MONGODB_URI) {
