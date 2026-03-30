@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Appointment from '@/models/Appointment';
+import Patient from '@/models/Patient';   // ✅ FIXED: registers Patient model
+import Dentist from '@/models/Dentist';   // ✅ FIXED: registers Dentist model
+import Branch from '@/models/Branch';     // ✅ FIXED: registers Branch model
 import { AppointmentUpdateSchema } from '@/lib/validations';
 import { requireSession, successResponse, errorResponse, createAuditLog } from '@/lib/api-helpers';
 
