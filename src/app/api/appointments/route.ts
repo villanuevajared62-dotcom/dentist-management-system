@@ -47,10 +47,8 @@ export async function GET(req: NextRequest) {
     if (session!.user.role === 'dentist') {
       const dentist = await Dentist.findOne({ userId: session!.user.id });
       if (dentist) {
-        // Search by dentist profile ID
         filter.dentistId = dentist._id;
       } else {
-        // No profile - return empty array (can't see any appointments)
         filter.dentistId = null;
       }
     } else if (searchParams.get('dentistId')) {
@@ -87,12 +85,12 @@ export async function POST(req: NextRequest) {
   const parsed = AppointmentSchema.safeParse(body);
   if (!parsed.success) return errorResponse(parsed.error.errors[0].message);
 
-  // Server-side check: prevent booking on past dates (backup for client validation)
+  // Server-side check: prevent booking on past dates
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const appointmentDate = new Date(parsed.data.date);
   appointmentDate.setHours(0, 0, 0, 0);
-  
+
   if (appointmentDate < today) {
     return errorResponse('Cannot book an appointment on a past date', 400);
   }
@@ -102,57 +100,42 @@ export async function POST(req: NextRequest) {
   let { dentistId, date, startTime, duration } = parsed.data;
   const endTime = addMinutes(startTime, parseInt(duration));
 
-  // ─── AUTO-CREATE DENTIST PROFILE IF NEEDED ─────────────────────
-  // Check if dentist profile exists for this dentistId
+  // Check if dentist profile exists
   let dentistProfile = await Dentist.findById(dentistId);
-  
+
   if (!dentistProfile) {
-    // Try to find by userId - maybe it's stored as user ID
     dentistProfile = await Dentist.findOne({ userId: dentistId });
-    
+
     if (!dentistProfile) {
-      // Profile doesn't exist - we need to create one automatically
-      // But we need user info - fetch from the dentist selection
-      // For now, create a basic profile
       return errorResponse(
         'Dentist profile does not exist. Please create a dentist profile first in the Dentists page.',
         400
       );
     }
-    // Use the found profile's ID
     dentistId = dentistProfile._id.toString();
   }
 
-  // Check if dentist is active
   if (!dentistProfile.isActive) {
     return errorResponse('This dentist is no longer available', 400);
   }
 
-  // ─── DOUBLE BOOKING CHECK (OPTIMIZED) ────────────────────────
-  // Reject if dentist already has a Pending/Completed appointment in overlapping slot
-  // OPTIMIZATION: Filter at database level instead of loading all and filtering in memory
-  
+  // Double booking check
   const startTimeMinutes = parseInt(startTime.replace(':', ''));
   const endTimeMinutes = parseInt(endTime.replace(':', ''));
-  
-  // First, get appointments that could potentially overlap (within 2-hour window)
-  // This reduces the number of documents loaded from DB significantly
+
   const potentialConflicts = await Appointment.find({
     dentistId,
     date,
     status: { $in: ['Pending', 'Completed'] },
-    startTime: { 
+    startTime: {
       $gte: String(Math.max(0, startTimeMinutes - 200)).padStart(4, '0'),
-      $lte: String(Math.min(2359, endTimeMinutes + 200)).padStart(4, '0')
-    }
+      $lte: String(Math.min(2359, endTimeMinutes + 200)).padStart(4, '0'),
+    },
   }).select('startTime endTime');
 
-  // Check for time overlap using numeric comparison (on smaller dataset)
   const conflict = potentialConflicts.find((appt: any) => {
     const apptStart = parseInt(appt.startTime.replace(':', ''));
     const apptEnd = parseInt(appt.endTime.replace(':', ''));
-    
-    // Check overlap: new appointment starts before existing ends AND ends after existing starts
     return startTimeMinutes < apptEnd && endTimeMinutes > apptStart;
   });
 
@@ -163,7 +146,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Sanitize input fields to prevent XSS and injection attacks
+  // Sanitize input fields
   const sanitizedData = {
     ...parsed.data,
     notes: sanitizeInput(parsed.data.notes),
@@ -176,7 +159,6 @@ export async function POST(req: NextRequest) {
     createdBy: session!.user.id,
   });
 
-  // Create audit log entry
   await createAuditLog(
     'CREATE',
     'Appointment',
